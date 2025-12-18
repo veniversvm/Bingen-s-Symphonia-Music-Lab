@@ -1,0 +1,80 @@
+@import "tailwindcss";
+/* Mueve la importación de fuentes AQUÍ, justo después de tailwindcss */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600&display=swap');
+
+@plugin "daisyui";
+
+/* --- 1. CONFIGURACIÓN DE TEMA --- */
+@theme {
+  --font-serif: "Merriweather", serif;
+  --font-sans: "Inter", sans-serif;
+  
+  --animate-fade-in: fade-in 0.3s ease-in-out;
+}
+
+/* --- 2. DEFINICIÓN DE COLORES (Variables CSS) --- */
+
+/* MODO CLARO: "Armonía Moderna" */
+:root {
+  /* Semántica de DaisyUI */
+  --primary: #355C7D;      /* Indigo */
+  --primary-content: #ffffff;
+  
+  --secondary: #06D6A0;    /* Esmeralda */
+  --secondary-content: #ffffff;
+  
+  --accent: #A7D7C5;       /* Azul Cian Claro */
+  --accent-content: #1C2A39;
+
+  --neutral: #1C2A39;      /* Texto Azul Medianoche */
+  --base-100: #ffffff;     /* Superficie */
+  --base-200: #F7F9FB;     /* Fondo Ppal */
+  --base-content: #1C2A39; /* Texto Principal */
+  
+  --error: #FF6B6B;        /* Coral Vibrante */
+
+  /* Variables Custom para Música */
+  --color-staff: #1C2A39;  
+  --color-piano-white: #ffffff;
+  --color-piano-black: #1C2A39;
+}
+
+/* MODO OSCURO: "Nocturno" */
+[data-theme="dark"] {
+  /* Semántica de DaisyUI */
+  --primary: #22D3EE;      /* Cian Eléctrico */
+  --primary-content: #0F172A;
+
+  --secondary: #4ADE80;    /* Verde Neón */
+  --secondary-content: #0F172A;
+
+  --accent: #22D3EE;       
+  
+  --neutral: #F1F5F9;
+  --base-100: #1E293B;     /* Superficie Oscura */
+  --base-200: #0F172A;     /* Fondo Oscuro */
+  --base-content: #F1F5F9; /* Texto Claro */
+
+  --error: #EF4444;        /* Rojo Fuego */
+
+  /* Variables Custom para Música */
+  --color-staff: #CBD5E1;  
+  --color-piano-white: #e2e8f0; 
+  --color-piano-black: #0f172a;
+}
+
+/* --- 3. ESTILOS GLOBALES --- */
+body {
+  @apply font-sans antialiased bg-base-200 text-base-content min-h-screen transition-colors duration-300;
+}
+
+h1, h2, h3, .font-musical {
+  @apply font-serif;
+}
+
+/* Clase utilitaria para colorear SVGs de VexFlow */
+.vexflow-stroke {
+  stroke: var(--color-staff);
+  fill: var(--color-staff);
+  transition: stroke 0.3s, fill 0.3s;
+}
