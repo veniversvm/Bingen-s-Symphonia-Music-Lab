@@ -50,7 +50,20 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
   },
+  optimizeDeps: {
+    // Excluimos las pesadas del pre-bundling inicial
+    exclude: ['vexflow', 'tonal']
+  },
   build: {
     target: 'esnext',
-  },
+    // Divide el código en trozos más agresivos
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['solid-js', '@solidjs/router'],
+          music: ['vexflow', 'soundfont-player', 'tonal'],
+        }
+      }
+    }
+  }
 });

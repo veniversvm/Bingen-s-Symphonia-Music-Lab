@@ -1,4 +1,5 @@
-import Soundfont from "soundfont-player";
+import * as Soundfont from 'soundfont-player';
+
 
 // Nombres oficiales de General MIDI
 export type InstrumentName =

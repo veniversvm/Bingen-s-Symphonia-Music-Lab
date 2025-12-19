@@ -26,6 +26,30 @@ export const ChordDictationGame = (props: Props) => {
   const [selectedInv, setSelectedInv] = createSignal<number | null>(null);
   const [feedback, setFeedback] = createSignal<'correct' | 'wrong' | null>(null);
 
+  // 1. Asegúrate de tener el signal de voces (por si se perdió)
+const [voices, setVoices] = createSignal([true, true, true, true]);
+
+// 2. Inserta esta función:
+const getActiveNotes = () => {
+  const currentChallenge = challenge();
+  if (!currentChallenge) return [];
+
+  // Filtramos las notas según el estado de los checkboxes de voces.
+  // Nota 0 suele ser el Bajo, la última nota es el Soprano.
+  return currentChallenge.notes.filter((_, index) => {
+    // Si el acorde tiene 3 notas (tríada), usamos los índices 0, 1 y 2 de voices.
+    // Si tiene 4 (séptima), usamos 0, 1, 2 y 3.
+    return voices()[index] ?? true;
+  });
+};
+
+// 3. (Opcional) La función para cambiar las voces que usa el UI:
+const toggleVoice = (idx: number) => {
+  const newVoices = [...voices()];
+  newVoices[idx] = !newVoices[idx];
+  setVoices(newVoices);
+};
+
   // Cargar primer ejercicio
   onMount(() => nextChallenge());
 
@@ -100,141 +124,136 @@ export const ChordDictationGame = (props: Props) => {
   }
 
   return (
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"> 
-      {/* Barra de Progreso */}
-      <div class="flex justify-between items-end px-2">
-        <span class="text-sm font-mono opacity-50">
-          Ejercicio {count()} {props.settings.limit !== 'infinite' && `/ ${props.settings.limit}`}
-        </span>
-        <span class="badge badge-lg">Aciertos: {score()}</span>
+    <div class="w-full max-w-6xl mx-auto space-y-4 md:space-y-8 animate-fade-in px-2 md:px-6">
+      
+      {/* 1. STATUS BAR (Top) */}
+      <div class="flex justify-between items-center bg-base-100 p-3 rounded-2xl shadow-sm border border-base-content/5">
+        <div class="flex flex-col">
+          <span class="text-[10px] uppercase font-bold opacity-50 tracking-tighter">Progreso</span>
+          <span class="font-mono text-lg leading-none">{count()} / {props.settings.limit}</span>
+        </div>
+        <div class="flex flex-col items-end">
+          <span class="text-[10px] uppercase font-bold opacity-50 tracking-tighter">Aciertos</span>
+          <span class="text-secondary font-bold text-lg leading-none">{score()}</span>
+        </div>
       </div>
-      <progress 
-        class="progress progress-primary w-full transition-all duration-500" 
-        value={count()} 
-        max={props.settings.limit === 'infinite' ? 100 : props.settings.limit}
-      ></progress>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  
+      {/* 2. MAIN GRID */}
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start">
         
-        {/* COLUMNA IZQUIERDA: AUDIO Y FEEDBACK */}
-        <div class="card bg-base-100 shadow-xl h-fit border border-base-content/5">
-          <div class="card-body items-center text-center">
-            <h3 class="card-title font-serif">Escucha</h3>
-            
-            {/* Badge de Instrumento Activo */}
-            <div class="badge badge-ghost gap-2 mb-2 text-xs opacity-70">
-              Timbre: <span class="uppercase font-bold">{currentInstrument().replace(/_/g, ' ')}</span>
-            </div>
-            
-            <div class="flex gap-4 my-4">
-              <button 
-                class="btn btn-circle btn-primary btn-lg shadow-lg hover:scale-105 transition-transform" 
-                onClick={() => challenge() && audioEngine.play(challenge()!.notes)}
-                title="Repetir Acorde"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-              </button>
-              <button 
-                class="btn btn-circle btn-secondary btn-lg shadow-lg hover:scale-105 transition-transform" 
-                onClick={() => challenge() && audioEngine.arpeggiate(challenge()!.notes)}
-                title="Escuchar Arpegio"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path></svg>
-              </button>
-            </div>
-
-            <div class="divider"></div>
-
-            {/* Visualización de Pentagrama (Solo si ya respondió) */}
-            <div class="w-full h-40 bg-base-200/50 rounded-lg flex items-center justify-center relative overflow-hidden border border-base-content/10">
-              <Show when={feedback()} fallback={<span class="opacity-20 italic font-serif text-2xl">? ? ?</span>}>
-                 <VexStaff notes={challenge()?.notes || []} width={280} />
-              </Show>
-            </div>
-
-            <Show when={feedback() === 'correct'}>
-              <div class="alert alert-success mt-4 animate-in fade-in slide-in-from-bottom-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span>¡Correcto!</span>
+        {/* COLUMNA IZQUIERDA: AUDIO Y VISUAL (8 columnas en PC) */}
+        <div class="lg:col-span-7 space-y-4">
+          <div class="card bg-base-100 shadow-xl border border-base-content/5 overflow-hidden">
+            <div class="card-body p-4 md:p-8">
+              <div class="flex justify-between items-center mb-4">
+                 <h3 class="font-serif text-xl opacity-70">Escucha Atenta</h3>
+                 <div class="badge badge-outline text-[10px] uppercase">{currentInstrument().replace(/_/g, ' ')}</div>
               </div>
-            </Show>
-            <Show when={feedback() === 'wrong'}>
-              <div class="alert alert-error mt-4 animate-in fade-in slide-in-from-bottom-2 text-left">
-                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <div class="flex flex-col">
-                  <span class="font-bold">Respuesta Incorrecta</span>
-                  <span class="text-xs">Era: {CHORD_TYPES.find(t => t.symbol === challenge()?.typeSymbol)?.label} ({challenge()?.inversion}ª inv)</span>
-                </div>
+  
+              {/* PENTAGRAMA: Fondo crema estilo papel */}
+              <div class="w-full bg-music-paper/10 dark:bg-base-200 rounded-xl p-2 md:p-6 border border-base-content/10 min-h-[180px] flex items-center justify-center">
+                <Show when={feedback()} fallback={
+                  <div class="flex flex-col items-center opacity-20 animate-pulse">
+                    <div class="w-20 h-20 border-4 border-dashed border-current rounded-full flex items-center justify-center">
+                       <span class="text-4xl">?</span>
+                    </div>
+                    <p class="mt-2 text-sm font-serif">Escucha y responde...</p>
+                  </div>
+                }>
+                  <VexStaff notes={challenge()?.notes || []} />
+                </Show>
               </div>
-            </Show>
+  
+              {/* CONTROLES DE AUDIO: Botones grandes para móvil */}
+              <div class="flex gap-4 mt-6">
+                <button 
+                  class="btn btn-primary btn-lg flex-1 shadow-lg active:scale-95 transition-transform" 
+                  onClick={() => challenge() && audioEngine.play(getActiveNotes())}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  Acorde
+                </button>
+                <button 
+                  class="btn btn-secondary btn-lg flex-1 shadow-lg active:scale-95 transition-transform" 
+                  onClick={() => challenge() && audioEngine.arpeggiate(getActiveNotes())}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                  Arpegio
+                </button>
+              </div>
+            </div>
           </div>
+  
+          {/* FEEDBACK ALERT (Mobile friendly) */}
+          <Show when={feedback()}>
+            <div class={`alert shadow-lg ${feedback() === 'correct' ? 'alert-success' : 'alert-error'} animate-in slide-in-from-top-4`}>
+               <span class="font-bold">
+                 {feedback() === 'correct' ? '¡Excelente!' : `Incorrecto. Era ${CHORD_TYPES.find(t => t.symbol === challenge()?.typeSymbol)?.label}`}
+               </span>
+            </div>
+          </Show>
         </div>
-
-        {/* COLUMNA DERECHA: SELECCIÓN */}
-        <div class="card bg-base-100 shadow-xl border border-base-content/5 h-fit">
-          <div class="card-body">
-            <h3 class="card-title text-sm opacity-50 uppercase tracking-widest">Tu Respuesta</h3>
-            
-            <div class="space-y-6 mt-2">
-              {/* Tipos */}
-              <div>
-                <label class="label"><span class="label-text font-bold text-primary">Tipo de Acorde</span></label>
-                <div class="grid grid-cols-2 gap-2">
-                  <For each={CHORD_TYPES.filter(t => props.settings.types.includes(t.symbol))}>{(type) => (
-                    <button 
-                      class={`btn btn-sm ${selectedType() === type.symbol ? 'btn-neutral ring-2 ring-primary ring-offset-2' : 'btn-outline border-base-content/20'}`}
-                      onClick={() => setSelectedType(type.symbol)}
-                      disabled={!!feedback()}
-                    >
-                      {type.label}
-                    </button>
-                  )}</For>
+  
+        {/* COLUMNA DERECHA: SELECCIÓN (5 columnas en PC) */}
+        <div class="lg:col-span-5 space-y-4">
+          <div class="card bg-base-100 shadow-xl border border-base-content/5">
+            <div class="card-body p-4 md:p-6">
+              
+              <div class="space-y-6">
+                {/* Tipos: Usamos grid de 2 columnas en móvil para que los botones sean grandes */}
+                <div>
+                  <label class="label-text font-bold mb-3 block text-primary">Calidad del Acorde</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <For each={CHORD_TYPES.filter(t => props.settings.types.includes(t.symbol))}>{(type) => (
+                      <button 
+                        class={`btn btn-md md:btn-sm ${selectedType() === type.symbol ? 'btn-primary' : 'btn-outline opacity-60'}`}
+                        disabled={!!feedback()}
+                        onClick={() => setSelectedType(type.symbol)}
+                      >
+                        {type.label}
+                      </button>
+                    )}</For>
+                  </div>
                 </div>
-              </div>
-
-              {/* Inversiones */}
-              <div>
-                <label class="label"><span class="label-text font-bold text-secondary">Estado</span></label>
-                <div class="grid grid-cols-2 gap-2">
-                  <For each={props.settings.inversions}>{(inv) => (
-                    <button 
-                      class={`btn btn-sm ${selectedInv() === inv ? 'btn-neutral ring-2 ring-secondary ring-offset-2' : 'btn-outline border-base-content/20'}`}
-                      onClick={() => setSelectedInv(inv)}
-                      disabled={!!feedback()}
-                    >
-                      {inv === 0 ? 'Fundamental' : `${inv}ª Inv`}
-                    </button>
-                  )}</For>
+  
+                {/* Inversiones */}
+                <div>
+                  <label class="label-text font-bold mb-3 block text-secondary">Estado / Inversión</label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <For each={props.settings.inversions}>{(inv) => (
+                      <button 
+                        class={`btn btn-md md:btn-sm ${selectedInv() === inv ? 'btn-secondary' : 'btn-outline opacity-60'}`}
+                        disabled={!!feedback()}
+                        onClick={() => setSelectedInv(inv)}
+                      >
+                        {inv === 0 ? 'Fundamental' : `${inv}ª Inv.`}
+                      </button>
+                    )}</For>
+                  </div>
                 </div>
-              </div>
-
-              {/* Botones de Acción Final */}
-              <div class="pt-6">
-                <Show when={!feedback()}>
-                  <button 
-                    class="btn btn-primary w-full shadow-lg"
-                    disabled={!selectedType() || selectedInv() === null}
-                    onClick={confirmAnswer}
-                  >
-                    Confirmar Respuesta
-                  </button>
-                </Show>
-
-                <Show when={feedback()}>
-                  <button 
-                    class="btn btn-outline w-full animate-pulse border-2" 
-                    onClick={handleNext}
-                    // Auto-focus para poder dar Enter y seguir
-                    ref={el => setTimeout(() => el.focus(), 100)} 
-                  >
-                    Siguiente Ejercicio →
-                  </button>
-                </Show>
+  
+                {/* ACCIÓN PRINCIPAL */}
+                <div class="pt-4">
+                  <Show when={!feedback()} fallback={
+                    <button class="btn btn-neutral btn-lg w-full gap-2 animate-bounce" onClick={handleNext}>
+                      Siguiente Reto <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </button>
+                  }>
+                    <button 
+                      class="btn btn-primary btn-lg w-full shadow-xl"
+                      disabled={!selectedType() || selectedInv() === null}
+                      onClick={confirmAnswer}
+                    >
+                      Confirmar
+                    </button>
+                  </Show>
+                </div>
+  
               </div>
             </div>
           </div>
         </div>
-
+  
       </div>
     </div>
   );

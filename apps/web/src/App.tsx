@@ -1,28 +1,38 @@
 import { Route, Router } from '@solidjs/router';
-// import { MainLayout } from './components/layout/MainLayout';
+import { lazy, Suspense } from 'solid-js';
 import { MainLayout } from './components/Layaout/MainLayaout';
-import { lazy } from 'solid-js';
-// import ChordConstruction from './features/excercises/ChordConstruction';
-import ChordDictation from './features/excercises/ChordDictation';
 
-// Lazy loading para mejorar el rendimiento inicial (Code Splitting)
-const Exercises = lazy(() => import('./features/excercises/ExercisesHome'));
-const Theory = lazy(() => import('./features/theory/TheoryHome'));
-const Profile = lazy(() => import('./features/profile/ProfileHome'));
+// Pages
+const MainPage = lazy(() => import('./pages/MainPage'));
+const ExercisesPage = lazy(() => import('./pages/ExercisesPage')); // El contenedor
+const TheoryPage = lazy(() => import('./pages/TheoryPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+
+// Features (Vistas directas de los juegos)
+const ExercisesList = lazy(() => import('./features/excercises/ExercisesHome'));
+// const ChordConstruction = lazy(() => import('./features/exercises/views/ChordConstruction'));
+const ChordDictation = lazy(() => import('./features/excercises/ChordDictation'));
 
 function App() {
   return (
     <Router root={MainLayout}>
-      <Route path="/" component={Exercises} />
-      <Route path="/exercises" component={Exercises} />
-      
-      {/* ESTA RUTA DEBE COINCIDIR CON EL HREF DEL BOTÓN */}
-      <Route path="/exercises/chord-construction" component={ChordDictation} /> 
-      
-      <Route path="/theory" component={Theory} />
-      <Route path="/profile" component={Profile} />
+      {/* 
+        Suspense permite que la app renderice el Layout y la ruta Home 
+        instantáneamente, mostrando el 'fallback' solo si algo falta.
+      */}
+      <Suspense fallback={<div class="flex h-screen items-center justify-center">Cargando Laboratorio...</div>}>
+        <Route path="/" component={MainPage} />
+        
+        <Route path="/exercises" component={ExercisesPage}>
+          <Route path="/" component={ExercisesList} />
+          {/* <Route path="/chord-construction" component={ChordConstruction} /> */}
+          <Route path="/chord-dictation" component={ChordDictation} />
+        </Route>
+        
+        <Route path="/theory" component={TheoryPage} />
+        <Route path="/profile" component={ProfilePage} />
+      </Suspense>
     </Router>
   );
 }
-
 export default App;

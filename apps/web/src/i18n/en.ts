@@ -1,6 +1,6 @@
 export const en = {
     common: {
-      appName: "Bingen's Symphonia",
+      appName: "Bingen's Symphonia Music Lab",
       loading: "Loading...",
       next: "Next",
       confirm: "Confirm",
@@ -9,7 +9,7 @@ export const en = {
     },
     nav: {
       practice: "Practice",
-      theory: "Theory",
+      theory: "Learn",
       profile: "Profile",
     },
     home: {
@@ -19,7 +19,7 @@ export const en = {
       chordConstructionDesc: "Major, Minor, Augmented and Diminished.",
       chordDictation: "Chord Dictation",
       chordDictationDesc: "Identify quality and inversion by ear.",
-      start: "Start",
+      start: "Excercises",
       train: "Train",
       comingSoon: "Coming Soon",
     }
