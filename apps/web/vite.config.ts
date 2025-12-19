@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: "Bingen's Symphonia",
-        short_name: "Symphonia",
+        name: "Bingen's Symphonia Music Lab",
+        short_name: "BSML",
         description: "Entrenamiento Auditivo Profesional",
         theme_color: "#355C7D",
         icons: [
