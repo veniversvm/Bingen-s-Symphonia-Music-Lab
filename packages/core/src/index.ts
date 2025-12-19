@@ -14,3 +14,6 @@ export interface Exercise {
 export const getScale = (root: string): string[] => {
   return [`${root}`, "Scale", "Generator", "Works!"];
 };
+
+// Agrega esta línea al final
+export * from './generators/chord-generator';

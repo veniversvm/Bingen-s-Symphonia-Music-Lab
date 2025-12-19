@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@bingens/core": "1.0.0",
+    "@solidjs/router": "^0.15.4",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/solid-query": "^5.90.15",
     "dexie": "^4.2.1",
+    "lucide-solid": "^0.562.0",
     "solid-js": "^1.9.10",
-    "tone": "^15.1.22",
+    "soundfont-player": "^0.12.0",
     "vexflow": "^5.0.0"
   },
   "devDependencies": {
