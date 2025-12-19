@@ -1,31 +1,32 @@
-import Soundfont from 'soundfont-player';
+import Soundfont from "soundfont-player";
 
 // Nombres oficiales de General MIDI
-export type InstrumentName = 
-  | 'acoustic_grand_piano' 
-  | 'acoustic_guitar_nylon' 
-  | 'violin' 
-  | 'flute' 
-  | 'choir_aahs'; // Voz
+export type InstrumentName =
+  | "acoustic_grand_piano"
+  | "acoustic_guitar_nylon"
+  | "violin"
+  | "flute"
+  | "choir_aahs"; // Voz
 
 class AudioEngine {
   private ctx: AudioContext;
   private currentInstrument: Soundfont.Player | null = null;
-  private currentName: InstrumentName = 'acoustic_grand_piano';
+  private currentName: InstrumentName = "acoustic_grand_piano";
   private isLoading = false;
 
   constructor() {
     // Inicializamos el contexto de audio del navegador
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext || (window as any).webkitAudioContext;
     this.ctx = new AudioContextClass();
-    
+
     // Cargar piano por defecto
-    this.setInstrument('acoustic_grand_piano');
+    this.setInstrument("acoustic_grand_piano");
   }
 
   public async setInstrument(name: InstrumentName) {
     if (this.currentName === name && this.currentInstrument) return;
-    
+
     this.isLoading = true;
     this.currentName = name;
 
@@ -40,25 +41,33 @@ class AudioEngine {
   }
 
   public play(notes: string[]) {
-    // Regla de navegadores: Reanudar AudioContext si está suspendido
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
+    this.playSequence(notes, 0); // 0 delay = Bloque
+  }
+
+  public arpeggiate(notes: string[]) {
+    // Tocar notas con 300ms de separación
+    this.playSequence(notes, 0.3);
+  }
+
+  // Método privado unificado
+  private playSequence(notes: string[], gapSeconds: number) {
+    if (this.ctx.state === "suspended") this.ctx.resume();
 
     if (this.currentInstrument && !this.isLoading) {
-      // Detenemos notas anteriores para limpiar el sonido
       this.currentInstrument.stop();
-      
-      // Reproducir cada nota
-      notes.forEach(note => {
-        this.currentInstrument?.play(note, this.ctx.currentTime, { 
-          duration: 2, // Duración en segundos
-          gain: 1      // Volumen
+
+      notes.forEach((note, index) => {
+        // Si gapSeconds es 0, todos suenan en currentTime (Acorde)
+        // Si gapSeconds es 0.3, suenan en 0, 0.3, 0.6... (Arpegio)
+        const time = this.ctx.currentTime + index * gapSeconds;
+
+        this.currentInstrument?.play(note, time, {
+          duration: 2.5,
+          gain: 1,
         });
       });
     }
   }
-
   public getIsLoading() {
     return this.isLoading;
   }
