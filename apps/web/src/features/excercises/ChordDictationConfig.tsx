@@ -1,7 +1,7 @@
-import { createSignal, For } from 'solid-js';
+import { createSignal, For, onMount } from 'solid-js';
 import { CHORD_TYPES } from '@bingens/core';
 import { InstrumentSelector } from '../../components/music/InstrumentSelector';
-import type { InstrumentName } from '../../lib/audio';
+import { type InstrumentName, audioEngine } from '../../lib/audio';
 
 export interface ChordDictationSettings {
   types: string[];
@@ -22,6 +22,11 @@ export const ChordDictationConfig = (props: Props) => {
   const [limit, setLimit] = createSignal<number | 'infinite'>(10);
   
   const [instruments, setInstruments] = createSignal<InstrumentName[]>(['acoustic_grand_piano']);
+
+  onMount(() => {
+    // Mientras el usuario configura, vamos bajando el piano silenciosamente
+    audioEngine.setInstrument('acoustic_grand_piano');
+  });
 
   const toggleType = (sym: string) => {
     if (types().includes(sym)) {

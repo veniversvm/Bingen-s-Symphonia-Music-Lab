@@ -13,7 +13,7 @@ export default function ExercisesHome() {
         {/* TARJETA DE ACORDES */}
         <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-secondary">
           <div class="card-body">
-            <h3 class="card-title font-serif">Construcción de Acordes</h3>
+            <h3 class="card-title font-serif">Dictado de Acordes</h3>
             <p class="text-sm opacity-70">Mayor, Menor, Aumentado y Disminuido.</p>
             
             <div class="card-actions justify-end mt-4">

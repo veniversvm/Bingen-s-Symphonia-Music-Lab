@@ -21,7 +21,7 @@ class AudioEngine {
     this.ctx = new AudioContextClass();
 
     // Cargar piano por defecto
-    this.setInstrument("acoustic_grand_piano");
+    //this.setInstrument("acoustic_grand_piano");
   }
 
   public async setInstrument(name: InstrumentName) {
@@ -31,19 +31,27 @@ class AudioEngine {
     this.currentName = name;
 
     try {
-      // Carga el SoundFont desde internet
-      this.currentInstrument = await Soundfont.instrument(this.ctx, name);
-    } catch (e) {
-      console.error("Error cargando instrumento MIDI:", e);
-    } finally {
-      this.isLoading = false;
+        // Optimizacion: Si el contexto está suspendido (regla de Chrome), lo reanudamos al cargar
+        if (this.ctx.state === 'suspended') await this.ctx.resume();
+  
+        this.currentInstrument = await Soundfont.instrument(this.ctx, name);
+      } catch (e) {
+        console.error("Error cargando instrumento MIDI:", e);
+      } finally {
+        this.isLoading = false;
+      }
+  }
+
+  public async play(notes: string[]) {
+    // Si intentan tocar sin haber cargado nada, cargamos el piano por defecto
+    if (!this.currentInstrument && !this.isLoading) {
+       await this.setInstrument('acoustic_grand_piano');
     }
+
+    this.playSequence(notes, 0);
   }
 
-  public play(notes: string[]) {
-    this.playSequence(notes, 0); // 0 delay = Bloque
-  }
-
+  
   public arpeggiate(notes: string[]) {
     // Tocar notas con 300ms de separación
     this.playSequence(notes, 0.3);
