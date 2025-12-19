@@ -100,7 +100,7 @@ export const ChordDictationGame = (props: Props) => {
   }
 
   return (
-    <div class="max-w-4xl mx-auto space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"> 
       {/* Barra de Progreso */}
       <div class="flex justify-between items-end px-2">
         <span class="text-sm font-mono opacity-50">
