@@ -46,70 +46,77 @@ export const CHORD_TYPES = [
  * 1. GENERADOR DE CONSTRUCCIÓN (Niveles predefinidos)
  * Usado en: ChordConstruction.tsx
  */
-export const generateChordChallenge = (level: number = 1): ChordChallenge => {
-  const roots = ["C", "G", "F", "D", "A", "Eb"];
-  const qualities = level === 1 ? ["M", "m"] : ["M7", "m7", "7"];
-  
-  const randomRoot = roots[Math.floor(Math.random() * roots.length)];
-  const randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
-  
-  const chord = Chord.get(`${randomRoot}${randomQuality}`);
-  const notesWithOctave = chord.notes.map(n => n + "4");
-
-  return {
-    root: randomRoot,
-    quality: chord.type,
-    symbol: chord.symbol,
-    notes: notesWithOctave,
-    prompt: `Construye el acorde: ${chord.name}`
-  };
-};
-
-/**
- * 2. GENERADOR DE DICTADO CUSTOM (Configurable)
- * Usado en: DictationGame.tsx
- */
 export const generateCustomDictation = (options: GeneratorOptions): ChordDictationChallenge => {
-  const roots = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+    const roots = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+    
+    // 1. Tipos
+    const availableTypes = CHORD_TYPES.filter(t => options.allowedTypes.includes(t.symbol));
+    const safeTypes = availableTypes.length > 0 ? availableTypes : [CHORD_TYPES[0]];
   
-  // 1. Filtrar tipos permitidos
-  // Si la lista está vacía o es inválida, usamos "Mayor" por defecto para no romper la app
-  const availableTypes = CHORD_TYPES.filter(t => options.allowedTypes.includes(t.symbol));
-  const safeTypes = availableTypes.length > 0 ? availableTypes : [CHORD_TYPES[0]];
-
-  const randomRoot = roots[Math.floor(Math.random() * roots.length)];
-  const randomType = safeTypes[Math.floor(Math.random() * safeTypes.length)];
+    const randomRoot = roots[Math.floor(Math.random() * roots.length)];
+    const randomType = safeTypes[Math.floor(Math.random() * safeTypes.length)];
+    
+    const chord = Chord.get(`${randomRoot}${randomType.symbol}`);
+    
+    // 2. CONSTRUCCIÓN ASCENDENTE (Base en Octava 4)
+    // Esto asegura que G-Bb-D sea G4-Bb4-D5 (Fundamental Estricta)
+    let currentOctave = 4;
+    let lastMidi = -1;
   
-  const chord = Chord.get(`${randomRoot}${randomType.symbol}`);
-  // Usamos octava 4 como base
-  let notes = chord.notes.map(n => n + "4"); 
-
-  // 2. Filtrar inversiones válidas para este acorde específico
-  // (Una tríada tiene máx inv 2, una séptima máx inv 3)
-  const maxPossibleInv = notes.length - 1;
-  const validInversions = options.allowedInversions.filter(inv => inv <= maxPossibleInv);
-  const safeInversions = validInversions.length > 0 ? validInversions : [0];
+    let notes = chord.notes.map(noteName => {
+      // Intentamos con la octava actual
+      let noteWithOctave = noteName + currentOctave;
+      let midi = Note.midi(noteWithOctave) || 0;
   
-  const inversion = safeInversions[Math.floor(Math.random() * safeInversions.length)];
-
-  // 3. Aplicar Inversión (Rotar notas + Subir octava)
-  const invertedNotes = [...notes];
-  for (let i = 0; i < inversion; i++) {
-    const note = invertedNotes.shift(); // Sacar la nota más grave
-    if (note) {
-      const midi = Note.midi(note);
-      // Subir 12 semitonos
-      const nextOctave = Note.fromMidi((midi || 0) + 12);
-      invertedNotes.push(nextOctave);
+      // Si la nota bajó respecto a la anterior (ej: G4 -> D4), subimos octava (G4 -> D5)
+      // para mantener el orden ascendente estricto.
+      if (lastMidi !== -1 && midi < lastMidi) {
+        currentOctave++;
+        noteWithOctave = noteName + currentOctave;
+        midi = Note.midi(noteWithOctave) || 0;
+      }
+  
+      lastMidi = midi;
+      return noteWithOctave;
+    });
+  
+    // 3. APLICAR INVERSIÓN
+    const maxPossibleInv = notes.length - 1;
+    const validInversions = options.allowedInversions.filter(inv => inv <= maxPossibleInv);
+    const safeInversions = validInversions.length > 0 ? validInversions : [0];
+    const inversion = safeInversions[Math.floor(Math.random() * safeInversions.length)];
+  
+    // Rotamos las notas y subimos octava de las que pasan al final
+    const invertedNotes = [...notes];
+    for (let i = 0; i < inversion; i++) {
+      const note = invertedNotes.shift(); 
+      if (note) {
+        const midi = Note.midi(note);
+        const nextOctave = Note.fromMidi((midi || 0) + 12);
+        invertedNotes.push(nextOctave);
+      }
     }
-  }
-
-  return {
-    id: crypto.randomUUID(), // Genera ID único
-    notes: invertedNotes,
-    root: randomRoot,
-    typeSymbol: randomType.symbol,
-    inversion: inversion,
-    prompt: "Identifica el Acorde"
+  
+    // 4. NORMALIZACIÓN VISUAL (CENTRAR EN PENTAGRAMA)
+    // Calculamos la altura promedio del acorde resultante
+    const avgMidi = invertedNotes.reduce((sum, n) => sum + (Note.midi(n) || 0), 0) / invertedNotes.length;
+    
+    // El centro ideal del pentagrama (Clave de Sol) es B4 (Midi 71)
+    // Si el acorde está muy agudo (promedio > 74, aprox Re5), lo bajamos una octava completa.
+    let finalNotes = invertedNotes;
+    if (avgMidi > 74) {
+       finalNotes = invertedNotes.map(n => {
+          const midi = Note.midi(n) || 0;
+          return Note.fromMidi(midi - 12); // Bajar 1 octava
+       });
+    }
+  
+    return {
+      id: crypto.randomUUID(),
+      notes: finalNotes,
+      root: randomRoot,
+      typeSymbol: randomType.symbol,
+      inversion: inversion,
+      prompt: "Identifica el Acorde"
+    };
   };
-};
