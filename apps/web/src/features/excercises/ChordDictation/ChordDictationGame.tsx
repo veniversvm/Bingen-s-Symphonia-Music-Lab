@@ -28,9 +28,8 @@ export const ChordDictationGame = (props: Props) => {
   const [feedback, setFeedback] = createSignal<"correct" | "wrong" | null>(null);
   const [voices] = createSignal([true, true, true, true]);
 
-  // --- LÓGICA DE CONTROL ---
+  // --- LÓGICA DE CONTROL DE SESIÓN ---
 
-  // Verifica si es el último ejercicio basándose en el límite
   const isLastExercise = () => 
     props.settings.limit !== "infinite" && count() === props.settings.limit;
 
@@ -39,7 +38,6 @@ export const ChordDictationGame = (props: Props) => {
   };
 
   const handleNext = () => {
-    // Si es el último, al darle click a "Siguiente/Finalizar" terminamos
     if (isLastExercise()) {
       finishSession();
     } else {
@@ -61,6 +59,8 @@ export const ChordDictationGame = (props: Props) => {
     return currentChallenge.notes.filter((_, index) => voices()[index] ?? true);
   };
 
+  // --- HELPERS DE TRADUCCIÓN PARA EL BANNER ---
+
   const getCorrectInvName = () => {
     const inv = challenge()?.inversion;
     if (inv === undefined) return "...";
@@ -73,6 +73,19 @@ export const ChordDictationGame = (props: Props) => {
     if (!sym) return "...";
     return t(`chords.${sym}` as any) as string;
   };
+
+  const getSelectedTypeName = () => {
+    if (!selectedType()) return t("config.selectType" as any) as string;
+    return t(`chords.${selectedType()}` as any) as string;
+  };
+
+  const getSelectedInvName = () => {
+    if (selectedInv() === null) return t("config.selectInv" as any) as string;
+    const invKeys = ["fundamental", "first", "second", "third"];
+    return t(`config.inversions_labels.${invKeys[selectedInv()!]}` as any) as string;
+  };
+
+  // --- CICLO DE JUEGO ---
 
   onMount(() => nextChallenge());
 
@@ -91,6 +104,8 @@ export const ChordDictationGame = (props: Props) => {
     const randomInstrument = availableInstruments[Math.floor(Math.random() * availableInstruments.length)] || "acoustic_grand_piano";
     setCurrentInstrument(randomInstrument);
     await audioEngine.setInstrument(randomInstrument);
+    
+    // Tocar el nuevo acorde (respetando si hay voces muteadas)
     setTimeout(() => audioEngine.play(getActiveNotes()), 300);
   };
 
@@ -107,24 +122,12 @@ export const ChordDictationGame = (props: Props) => {
     }
   };
 
-  const getSelectedTypeName = () => {
-    if (!selectedType()) return t("config.selectType" as any) as string;
-    return t(`chords.${selectedType()}` as any) as string;
-  };
-
-  const getSelectedInvName = () => {
-    if (selectedInv() === null) return t("config.selectInv" as any) as string;
-    const invKeys = ["fundamental", "first", "second", "third"];
-    return t(`config.inversions_labels.${invKeys[selectedInv()!]}` as any) as string;
-  };
-
   return (
     <Show 
       when={!isGameOver()} 
       fallback={
         <ExerciseSummary
           score={score()}
-          // Total de ejercicios respondidos (o intentados)
           total={Math.max(feedback() ? count() : count() - 1, 0)}
           onRetry={resetGame} 
           onExit={props.onExit}
@@ -133,46 +136,45 @@ export const ChordDictationGame = (props: Props) => {
     >
       <div class="w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-2 space-y-3 md:space-y-6 animate-fade-in pb-10">
         
-        <div class="flex flex-col bg-base-100 rounded-2xl shadow-xl border border-base-content/10 overflow-hidden">
+        {/* BLOQUE SUPERIOR UNIFICADO: CONSOLA MUSICAL */}
+        <div class="flex flex-col bg-base-100 rounded-2xl shadow-xl border border-base-content/10 overflow-hidden transition-all">
           
+          {/* TOOLBAR */}
           <div class="flex items-center justify-between px-3 py-2 md:px-6 md:py-4 bg-base-200/50 border-b border-base-content/5">
             <div class="flex items-center gap-2">
-              {/* BOTÓN TERMINAR (Arriba a la izquierda) */}
               <button 
                 onClick={finishSession}
-                class="btn btn-ghost btn-xs md:btn-sm text-error font-black gap-1 p-1 md:px-2 hover:bg-error/10"
+                class="btn btn-ghost btn-xs md:btn-sm text-error font-black gap-1 hover:bg-error/10 uppercase tracking-tighter"
               >
                 <LogOut size={14} />
-                <span class="hidden sm:inline uppercase tracking-tighter">
-                  {t('config.finishEarly' as any) as string}
-                </span>
+                <span class="hidden sm:inline">{t('config.finishEarly' as any) as string}</span>
               </button>
-              <div class="divider divider-horizontal mx-0 opacity-20"></div>
+              <div class="divider divider-horizontal mx-0 opacity-20 hidden sm:flex"></div>
               <div class="flex flex-col">
                 <span class="text-[9px] md:text-xs font-black uppercase opacity-40">Instrumento</span>
-                <span class="text-[10px] md:text-sm font-bold text-primary truncate max-w-[80px]">
+                <span class="text-[10px] md:text-sm font-bold text-primary truncate max-w-[80px] md:max-w-none">
                   {currentInstrument().replace(/_/g, ' ')}
                 </span>
               </div>
             </div>
 
-            <div class="flex items-center gap-3 md:gap-6">
-              <div class="text-right">
-                <p class="text-[9px] md:text-xs font-black opacity-40 uppercase">Progreso</p>
-                <p class="text-xs md:text-base font-mono font-bold leading-none">
+            <div class="flex items-center gap-3 md:gap-6 text-right">
+              <div>
+                <p class="text-[9px] md:text-xs font-black opacity-40 uppercase tracking-widest leading-none mb-1">Progreso</p>
+                <p class="text-xs md:text-lg font-mono font-bold leading-none">
                   {count()} <span class="opacity-30 text-[10px]">{props.settings.limit !== 'infinite' ? `/ ${props.settings.limit}` : '∞'}</span>
                   <span class="text-secondary ml-2">+{score()}</span>
                 </p>
               </div>
-              <div class="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 border-base-content/5">
-                 <Show when={feedback() === 'correct'}><CircleCheck class="text-success" size={24} /></Show>
-                 <Show when={feedback() === 'wrong'}><CircleX class="text-error" size={24} /></Show>
+              <div class="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 border-base-content/5 bg-base-100 shadow-inner">
+                 <Show when={feedback() === 'correct'}><CircleCheck class="text-success" size={26} /></Show>
+                 <Show when={feedback() === 'wrong'}><CircleX class="text-error" size={26} /></Show>
                  <Show when={!feedback()}><div class="w-2 h-2 md:w-3 md:h-3 rounded-full bg-base-300 animate-pulse"></div></Show>
               </div>
             </div>
           </div>
 
-          {/* BANNER DE FEEDBACK */}
+          {/* BANNER DE FEEDBACK PRE-PREPARADO */}
           <div 
             class="h-9 md:h-14 flex items-center justify-center border-b border-base-content/5 transition-all duration-300"
             classList={{
@@ -191,23 +193,29 @@ export const ChordDictationGame = (props: Props) => {
             </Show>
           </div>
 
+          {/* ÁREA DEL PENTAGRAMA */}
           <div class="p-2 md:p-8 min-h-[140px] md:min-h-[280px] flex items-center justify-center bg-base-100">
+             {/* Solo mostramos la respuesta en el pentagrama tras responder */}
              <VexStaff notes={feedback() ? (challenge()?.notes || []) : []} />
           </div>
 
+          {/* BOTONES DE REPRODUCCIÓN */}
           <div class="grid grid-cols-2 border-t border-base-content/10 bg-base-200/30">
             <button class="btn btn-ghost rounded-none border-r border-base-content/5 gap-2 h-12 md:h-16" onClick={() => challenge() && audioEngine.play(getActiveNotes())}>
-              <Play size={16} class="fill-current" /> <span class="text-[10px] md:text-sm uppercase font-black">Acorde</span>
+              <Play size={16} class="fill-current" /> <span class="text-[10px] md:text-sm uppercase font-black tracking-widest">Acorde</span>
             </button>
             <button class="btn btn-ghost rounded-none gap-2 h-12 md:h-16" onClick={() => challenge() && audioEngine.arpeggiate(getActiveNotes())}>
-              <Music2 size={16} /> <span class="text-[10px] md:text-sm uppercase font-black">Arpegio</span>
+              <Music2 size={16} /> <span class="text-[10px] md:text-sm uppercase font-black tracking-widest">Arpegio</span>
             </button>
           </div>
         </div>
 
+        {/* CARD DE SELECCIÓN */}
         <div class="card bg-base-100 shadow-lg border border-base-content/5">
-          <div class="card-body p-3 md:p-8 space-y-3 md:space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-6">
+          <div class="card-body p-3 md:p-8 space-y-4 md:space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
+              
+              {/* DROPDOWN CALIDAD */}
               <div class="dropdown w-full">
                 <label class="text-[9px] md:text-xs uppercase font-black opacity-40 mb-1 block ml-1 tracking-widest">Calidad</label>
                 <div tabindex="0" role="button" class={`btn btn-outline btn-sm md:btn-md h-11 md:h-14 w-full justify-between font-bold border-base-content/10 ${feedback() ? 'btn-disabled' : ''}`}>
@@ -225,6 +233,7 @@ export const ChordDictationGame = (props: Props) => {
                 </ul>
               </div>
 
+              {/* DROPDOWN INVERSIÓN */}
               <div class="dropdown w-full">
                 <label class="text-[9px] md:text-xs uppercase font-black opacity-40 mb-1 block ml-1 tracking-widest">Estado</label>
                 <div tabindex="0" role="button" class={`btn btn-outline btn-sm md:btn-md h-11 md:h-14 w-full justify-between font-bold border-base-content/10 ${feedback() ? 'btn-disabled' : ''}`}>
@@ -235,7 +244,6 @@ export const ChordDictationGame = (props: Props) => {
                   <For each={props.settings.inversions}>{(inv) => (
                     <li>
                       <button class="py-3 md:text-base font-bold" onClick={() => {(document.activeElement as HTMLElement)?.blur(); setSelectedInv(inv)}}>
-                         {/* Usando las etiquetas del i18n para consistencia */}
                         {t(`config.inversions_labels.${["fundamental", "first", "second", "third"][inv]}` as any) as string}
                       </button>
                     </li>
@@ -244,13 +252,13 @@ export const ChordDictationGame = (props: Props) => {
               </div>
             </div>
 
+            {/* BOTÓN DE ACCIÓN FINAL */}
             <div class="pt-1">
               <Show when={!feedback()} fallback={
                 <button 
                   class="btn btn-neutral btn-md md:btn-lg w-full gap-3 shadow-lg font-black uppercase text-xs md:text-base animate-in zoom-in" 
                   onClick={handleNext}
                 >
-                  {/* TEXTO DINÁMICO: Si es el último, dice Finalizar */}
                   {isLastExercise() ? (t('config.finish' as any) as string) : (t('common.next' as any) as string)}
                   <ChevronDown size={20} class={isLastExercise() ? "" : "-rotate-90"} />
                 </button>

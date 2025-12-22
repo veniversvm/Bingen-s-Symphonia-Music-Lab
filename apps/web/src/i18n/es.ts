@@ -22,5 +22,16 @@ export const es = {
       start: "Ejercicios",
       train: "Entrenar",
       comingSoon: "Próximamente",
+    },
+    summary: {
+      title: "Resultado de la Sesión",
+      perfect: "¡Excelente Maestro!",
+      improve: "Buen trabajo, pero mejorable",
+      review: "Necesitas repasar más",
+      correct: "Aciertos",
+      total: "Total",
+      percentage: "Precisión",
+      retry: "Reintentar",
+      exit: "Finalizar"
     }
   };

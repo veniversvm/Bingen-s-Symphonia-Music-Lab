@@ -81,3 +81,11 @@ h1, h2, h3, .font-musical {
   fill: var(--color-staff);
   transition: stroke 0.3s, fill 0.3s;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
