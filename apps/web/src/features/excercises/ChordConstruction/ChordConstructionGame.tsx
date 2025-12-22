@@ -1,12 +1,11 @@
 import { createSignal, onMount, Show } from "solid-js";
-// Importamos 'Note' como TIPO y 'NoteUtils' como VALOR/OBJETO
 import {
   generateCustomDictation,
   type ChordDictationChallenge,
   type Note,
   NoteUtils,
 } from "@bingens/core";
-import { audioEngine } from "../../../lib/audio";
+import { audioEngine, type InstrumentName } from "../../../lib/audio";
 import { VexStaff } from "../../../components/music/VexStaff";
 import { PianoInput } from "../../../components/music/PianoInput";
 import { useChordI18n } from "../ChordDictation/i18n";
@@ -24,7 +23,7 @@ import { ExerciseSummary } from "../ExerciseSummary";
 import type { ChordDictationSettings } from "../ChordDictation/ChordDictationConfig";
 
 interface Props {
-  settings: ChordDictationSettings; // En lugar de 'any'
+  settings: ChordDictationSettings;
   onExit: () => void;
 }
 
@@ -33,37 +32,45 @@ export const ChordConstructionGame = (props: Props) => {
   const [challenge, setChallenge] =
     createSignal<ChordDictationChallenge | null>(null);
   const [userNotes, setUserNotes] = createSignal<string[]>([]);
-
   const [count, setCount] = createSignal(1);
   const [score, setScore] = createSignal(0);
   const [isGameOver, setIsGameOver] = createSignal(false);
   const [feedback, setFeedback] = createSignal<"correct" | "wrong" | null>(
     null
   );
+  const [currentInstrument] = createSignal<InstrumentName>(
+    "acoustic_grand_piano"
+  );
 
   // --- LÓGICA DE NAVEGACIÓN ---
 
   const nextChallenge = async () => {
-    // 1. Verificamos el límite de ejercicios
     if (props.settings.limit !== "infinite" && count() > props.settings.limit) {
       setIsGameOver(true);
       return;
     }
-
     setFeedback(null);
     setUserNotes([]);
-
-    // 2. MAPEADO DE LLAVES:
-    // Convertimos 'types' a 'allowedTypes' e 'inversions' a 'allowedInversions'
     const next = generateCustomDictation({
       allowedTypes: props.settings.types,
       allowedInversions: props.settings.inversions,
     });
-
     setChallenge(next);
+    await audioEngine.setInstrument(
+      props.settings.instruments[0] || "acoustic_grand_piano"
+    );
+  };
 
-    // 3. Opcional: Sonido de referencia (si quieres que suene el piano al cargar)
-    // await audioEngine.setInstrument('acoustic_grand_piano');
+  const handleNext = () => {
+    if (
+      props.settings.limit !== "infinite" &&
+      count() === props.settings.limit
+    ) {
+      setIsGameOver(true);
+    } else {
+      setCount((c) => c + 1);
+      nextChallenge();
+    }
   };
 
   const resetGame = () => {
@@ -73,7 +80,74 @@ export const ChordConstructionGame = (props: Props) => {
     nextChallenge();
   };
 
-  // --- LÓGICA DEL JUEGO ---
+  // --- LÓGICA MUSICAL SIMPLIFICADA (Pitch Class Only) ---
+
+  const preferredAccidental = () => {
+    const notes = challenge()?.notes || [];
+    return notes.some((n) => n.includes("b")) ? "flat" : "sharp";
+  };
+
+  const handleNoteInput = (clickedNote: string) => {
+    if (feedback()) return;
+
+    const clickedMidi = NoteUtils.midi(clickedNote);
+    const challengeNotes = challenge()?.notes || [];
+
+    /**
+     * MAGIA ENARMÓNICA:
+     * Buscamos en el reto si existe una nota con el mismo MIDI que la tecla pulsada.
+     * Si el reto pide E#4 (midi 65) y el usuario pulsa la tecla F4 (midi 65),
+     * el sistema elegirá E#4 automáticamente.
+     */
+    const matchedNoteFromChallenge = challengeNotes.find(
+      (n) => NoteUtils.midi(n) === clickedMidi
+    );
+
+    // Si hay coincidencia en el reto, usamos ese nombre exacto (E#, B#, Cb, etc.)
+    // Si no, usamos el nombre estándar de la tecla del piano.
+    let noteToProcess = matchedNoteFromChallenge
+      ? matchedNoteFromChallenge
+      : clickedNote;
+
+    // Lógica de Toggle (Añadir/Quitar)
+    if (userNotes().includes(noteToProcess)) {
+      setUserNotes(userNotes().filter((n) => n !== noteToProcess));
+    } else {
+      if (userNotes().length >= 4) return;
+
+      // Ordenamos por MIDI para que el pentagrama sea siempre ascendente
+      const newNotes = [...userNotes(), noteToProcess].sort(
+        (a, b) => (NoteUtils.midi(a) ?? 0) - (NoteUtils.midi(b) ?? 0)
+      );
+
+      setUserNotes(newNotes);
+      audioEngine.play([noteToProcess]);
+    }
+  };
+
+  const checkAnswer = () => {
+    const correctNotes = challenge()?.notes;
+    if (!correctNotes || userNotes().length === 0) return;
+
+    // Comparamos ignorando octavas: "C#4" -> "C#"
+    const simplify = (notes: string[]) =>
+      notes.map((n) => n.replace(/\d/g, ""));
+
+    const userSimplified = simplify(userNotes());
+    const targetSimplified = simplify(correctNotes);
+
+    const isCorrect =
+      JSON.stringify(userSimplified) === JSON.stringify(targetSimplified);
+
+    if (isCorrect) {
+      setFeedback("correct");
+      setScore((s) => s + 1);
+      audioEngine.play(userNotes());
+    } else {
+      setFeedback("wrong");
+      setTimeout(() => audioEngine.arpeggiate(correctNotes), 500);
+    }
+  };
 
   const getChallengeName = () => {
     const sym = challenge()?.typeSymbol;
@@ -85,71 +159,6 @@ export const ChordConstructionGame = (props: Props) => {
   };
 
   onMount(() => nextChallenge());
-
-  // Función para manejar el botón "Siguiente" o "Finalizar"
-  const isLastExercise = () =>
-    props.settings.limit !== "infinite" && count() === props.settings.limit;
-
-  const handleNext = () => {
-    if (isLastExercise()) {
-      setIsGameOver(true);
-    } else {
-      setCount((c) => c + 1);
-      nextChallenge();
-    }
-  };
-
-  const handleNoteInput = (clickedNote: string) => {
-    if (feedback()) return;
-  
-    const challengeNotes = challenge()?.notes || [];
-    
-    // Lógica de Enarmonía Contextual:
-    // Si el usuario toca "Gb4" pero el reto espera "F#4", lo convertimos antes de procesar
-    let noteToProcess = clickedNote;
-    const enharmonic = NoteUtils.enharmonic(clickedNote);
-    
-    if (!challengeNotes.includes(clickedNote) && challengeNotes.includes(enharmonic)) {
-      noteToProcess = enharmonic;
-    }
-  
-    // Ahora sí, hacemos el toggle con la nota "bien deletreada"
-    if (userNotes().includes(noteToProcess)) {
-      setUserNotes(userNotes().filter(n => n !== noteToProcess));
-    } else {
-      if (userNotes().length >= 4) return;
-      const newNotes = [...userNotes(), noteToProcess].sort(
-        (a, b) => (NoteUtils.midi(a) ?? 0) - (NoteUtils.midi(b) ?? 0)
-      );
-      setUserNotes(newNotes);
-      audioEngine.play([noteToProcess]);
-    }
-  };
-  
-
-  const checkAnswer = () => {
-    const correct = challenge()?.notes;
-    if (!correct) return;
-
-    // Comparamos arrays ordenados
-    const isCorrect = JSON.stringify(userNotes()) === JSON.stringify(correct);
-
-    if (isCorrect) {
-      setFeedback("correct");
-      setScore((s) => s + 1);
-      audioEngine.play(userNotes());
-    } else {
-      setFeedback("wrong");
-      // Al fallar, tocamos el acorde correcto para que el usuario compare el sonido
-      setTimeout(() => audioEngine.arpeggiate(correct), 500);
-    }
-  };
-
-  const preferredAccidental = () => {
-    const notes = challenge()?.notes || [];
-    // Si alguna nota del reto tiene un bemol 'b', preferimos bemoles
-    return notes.some((n) => n.includes("b")) ? "flat" : "sharp";
-  };
 
   return (
     <Show
@@ -164,7 +173,7 @@ export const ChordConstructionGame = (props: Props) => {
       }
     >
       <div class="w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-2 space-y-3 md:space-y-6 animate-fade-in pb-10">
-        {/* BLOQUE SUPERIOR UNIFICADO */}
+        {/* CONSOLA SUPERIOR */}
         <div class="flex flex-col bg-base-100 rounded-2xl shadow-xl border border-base-content/10 overflow-hidden">
           <div class="flex items-center justify-between px-3 py-2 md:px-6 md:py-4 bg-base-200/50 border-b border-base-content/5">
             <button
@@ -179,7 +188,7 @@ export const ChordConstructionGame = (props: Props) => {
 
             <div class="flex items-center gap-3 md:gap-6 text-right">
               <div>
-                <p class="text-[9px] md:text-xs font-black opacity-40 uppercase tracking-widest">
+                <p class="text-[9px] md:text-xs font-black opacity-40 uppercase">
                   Progreso
                 </p>
                 <p class="text-xs md:text-base font-mono font-bold leading-none">
@@ -187,7 +196,7 @@ export const ChordConstructionGame = (props: Props) => {
                   <span class="text-secondary">+{score()}</span>
                 </p>
               </div>
-              <div class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 border-base-content/5 shadow-inner">
+              <div class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 border-base-content/5">
                 <Show when={feedback() === "correct"}>
                   <CircleCheck size={24} class="text-success" />
                 </Show>
@@ -201,37 +210,24 @@ export const ChordConstructionGame = (props: Props) => {
             </div>
           </div>
 
-          {/* BANNER DE INSTRUCCIÓN: Muestra qué acorde construir */}
-          <div
-            class="h-10 md:h-14 flex items-center justify-center border-b border-base-content/5 transition-colors duration-300"
-            classList={{
-              "bg-success/10 text-success": feedback() === "correct",
-              "bg-error/10 text-error": feedback() === "wrong",
-              "bg-primary/5 text-primary": !feedback(),
-            }}
-          >
+          {/* BANNER DE RETO */}
+          <div class="h-10 md:h-14 flex items-center justify-center border-b border-base-content/5 transition-colors duration-300 bg-primary/5 text-primary">
             <h2 class="text-xs md:text-lg font-serif font-bold uppercase tracking-wider">
               <Show
                 when={feedback() === "wrong"}
                 fallback={`${challenge()?.root} ${getChallengeName()}`}
               >
-                {/* Si se equivoca, recordamos cuál era la respuesta correcta */}
                 {t("game.prompt" as any) || "Era"}: {challenge()?.root}{" "}
                 {getChallengeName()}
               </Show>
             </h2>
           </div>
 
-          {/* PENTAGRAMA: Muestra las notas del USUARIO en tiempo real */}
           <div class="p-2 md:p-8 min-h-[140px] md:min-h-[280px] flex items-center justify-center bg-base-100">
-            {/* 
-                Importante: Aquí pasamos userNotes() para el "Live Rendering". 
-                Si hay feedback de error, podrías mostrar challenge().notes en otro color 
-             */}
             <VexStaff notes={userNotes()} />
           </div>
 
-          {/* BOTONES DE REPETICIÓN (Solo útiles tras responder o para referencia) */}
+          {/* BOTONES DE AUDIO */}
           <div class="grid grid-cols-2 border-t border-base-content/10 bg-base-200/30">
             <button
               class="btn btn-ghost rounded-none border-r border-base-content/5 gap-2 h-12"
@@ -240,7 +236,7 @@ export const ChordConstructionGame = (props: Props) => {
             >
               <Play size={16} class="fill-current" />{" "}
               <span class="text-[10px] md:text-xs uppercase font-black">
-                Escuchar Mi Acorde
+                Mi Acorde
               </span>
             </button>
             <button
@@ -251,20 +247,19 @@ export const ChordConstructionGame = (props: Props) => {
             >
               <Music2 size={16} />{" "}
               <span class="text-[10px] md:text-xs uppercase font-black">
-                Referencia Correcta
+                Referencia
               </span>
             </button>
           </div>
         </div>
 
-        {/* PIANO Y ACCIONES */}
+        {/* PIANO */}
         <div class="card bg-base-100 shadow-lg border border-base-content/5">
           <div class="card-body p-3 md:p-8 space-y-4">
-            {/* El PianoInput debe manejar el scroll horizontal si es el expandido */}
             <PianoInput
               onNoteClick={handleNoteInput}
               selectedNotes={userNotes()}
-              preferredAccidental={preferredAccidental()} 
+              preferredAccidental={preferredAccidental()}
             />
 
             <div class="flex gap-2">
@@ -284,12 +279,14 @@ export const ChordConstructionGame = (props: Props) => {
                     class="btn btn-neutral btn-md md:btn-lg flex-1 gap-3 shadow-lg font-black uppercase"
                     onClick={handleNext}
                   >
-                    {isLastExercise()
+                    {count() === props.settings.limit
                       ? t("config.finish" as any)
                       : t("common.next" as any)}
                     <ChevronDown
                       size={20}
-                      class={isLastExercise() ? "" : "-rotate-90"}
+                      class={
+                        count() === props.settings.limit ? "" : "-rotate-90"
+                      }
                     />
                   </button>
                 }
