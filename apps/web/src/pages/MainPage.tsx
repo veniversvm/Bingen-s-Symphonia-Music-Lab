@@ -1,7 +1,7 @@
 import { onMount } from 'solid-js';
 import { A } from '@solidjs/router';
 import { useI18n } from '../i18n';
-import hildegardImg from '../assets/Hildegard_von_Bingen._Line_engraving_by_W._Marshall.jpg';
+import hildegardImg from '../assets/Hildegard_von_Bingen._Line_engraving_by_W._Marshall.avif';
 
 const MainPage = () => {
   const [t] = useI18n();
@@ -29,8 +29,9 @@ const MainPage = () => {
     <div class="hero min-h-[80vh] bg-base-200 animate-fade-in">
       <div class="hero-content flex-col lg:flex-row-reverse gap-12">
         
-        <div class="relative group">
+      <div class="relative group aspect-[384/500] bg-base-300 rounded-lg overflow-hidden">
           <div class="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+          
           <img 
             src={hildegardImg} 
             class="relative max-w-sm rounded-lg shadow-2xl sepia-[.3] grayscale-[.5] hover:sepia-0 hover:grayscale-0 transition-all duration-700" 

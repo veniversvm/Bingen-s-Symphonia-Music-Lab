@@ -1,31 +1,62 @@
 import { defineConfig } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 import tailwindcss from '@tailwindcss/vite';
-import { VitePWA } from 'vite-plugin-pwa'; // <--- Importamos esto
+import { VitePWA } from 'vite-plugin-pwa';
+import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'; // <--- IMPORTACIÓN REAL
 
 export default defineConfig({
   plugins: [
     solidPlugin(),
     tailwindcss(),
+    // 1. Optimizador de Imágenes (Ejecuta durante el build)
+    ViteImageOptimizer({
+      test: /\.(jpe?g|png|gif|tiff|webp|svg|avif)$/i,
+      exclude: undefined,
+      include: undefined,
+      includePublic: true,
+      logStats: true,
+      ansiColors: true,
+      svg: {
+        multipass: true,
+        plugins: [
+          { name: 'removeViewBox', active: false },
+          { name: 'sortAttrs', params: { xmlnsOrder: 'alphabetical' } },
+        ],
+      },
+      png: { quality: 70 },
+      jpeg: { quality: 70 },
+      jpg: { quality: 70 },
+      webp: { quality: 70 },
+      avif: { quality: 60 }, // AVIF es el más eficiente para el grabado de Hildegarda
+    }),
+    
+    // 2. Configuración PWA
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'assets/*.avif', 'assets/*.jpg'],
       manifest: {
         name: "Bingen's Symphonia Music Lab",
         short_name: "BSML",
         description: "Entrenamiento Auditivo Profesional",
         theme_color: "#355C7D",
+        background_color: "#F7F9FB",
+        display: "standalone",
         icons: [
           {
-            src: 'pwa-192x192.png', // Asegúrate de tener un icono eventualmente
+            src: 'pwa-192x192.png',
             sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
             type: 'image/png'
           }
         ]
       },
       workbox: {
-        // ESTA ES LA CLAVE DE LA OPTIMIZACIÓN:
-        // Cachear archivos externos (CDN de Soundfont)
+        // Cachear todo lo que esté en el build (incluyendo imágenes optimizadas)
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,avif,webp}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/gleitz\.github\.io\/midi-js-soundfonts\/.*/i,
@@ -34,7 +65,7 @@ export default defineConfig({
               cacheName: 'midi-sounds-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 año
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -45,18 +76,20 @@ export default defineConfig({
       }
     }) as any
   ],
+  
   server: {
     port: 3001,
     host: true,
     allowedHosts: true,
   },
+
   optimizeDeps: {
-    // Excluimos las pesadas del pre-bundling inicial
     exclude: ['vexflow', 'tonal']
   },
+
   build: {
     target: 'esnext',
-    // Divide el código en trozos más agresivos
+    assetsInlineLimit: 4096, // Imágenes menores a 4kb se incrustan en el JS (más rápido)
     rollupOptions: {
       output: {
         manualChunks: {

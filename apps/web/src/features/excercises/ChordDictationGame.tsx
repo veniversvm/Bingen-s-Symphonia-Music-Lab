@@ -27,7 +27,7 @@ export const ChordDictationGame = (props: Props) => {
   const [feedback, setFeedback] = createSignal<'correct' | 'wrong' | null>(null);
 
   // 1. Asegúrate de tener el signal de voces (por si se perdió)
-const [voices, setVoices] = createSignal([true, true, true, true]);
+const [voices] = createSignal([true, true, true, true]);
 
 // 2. Inserta esta función:
 const getActiveNotes = () => {
@@ -44,11 +44,11 @@ const getActiveNotes = () => {
 };
 
 // 3. (Opcional) La función para cambiar las voces que usa el UI:
-const toggleVoice = (idx: number) => {
-  const newVoices = [...voices()];
-  newVoices[idx] = !newVoices[idx];
-  setVoices(newVoices);
-};
+// const toggleVoice = (idx: number) => {
+//   const newVoices = [...voices()];
+//   newVoices[idx] = !newVoices[idx];
+//   setVoices(newVoices);
+// };
 
   // Cargar primer ejercicio
   onMount(() => nextChallenge());
