@@ -2,8 +2,15 @@ import { createSignal, onMount, Show, For } from 'solid-js';
 import { generateCustomDictation, CHORD_TYPES, type ChordDictationChallenge } from '@bingens/core';
 import { audioEngine, type InstrumentName } from '../../../lib/audio';
 import { VexStaff } from '../../../components/music/VexStaff';
-// Asegúrate de que este import coincida con el nombre de tu archivo de config
-import type { ChordDictationSettings } from './ChordDictationConfig'; 
+import { useChordI18n } from './i18n';
+import { 
+  CircleCheck, 
+  CircleX,     
+  ChevronDown, 
+  Play, 
+  Music2 
+} from 'lucide-solid';
+import type { ChordDictationSettings } from './ChordDictationConfig';
 
 interface Props {
   settings: ChordDictationSettings;
@@ -11,89 +18,68 @@ interface Props {
 }
 
 export const ChordDictationGame = (props: Props) => {
+  const [t] = useChordI18n();
   const [challenge, setChallenge] = createSignal<ChordDictationChallenge | null>(null);
-  
-  // Estado de Progreso
   const [count, setCount] = createSignal(1);
   const [score, setScore] = createSignal(0);
   const [isGameOver, setIsGameOver] = createSignal(false);
-
-  // Estado de Audio (Multi-instrumento)
   const [currentInstrument, setCurrentInstrument] = createSignal<InstrumentName>('acoustic_grand_piano');
-
-  // Estado de Respuesta
   const [selectedType, setSelectedType] = createSignal<string | null>(null);
   const [selectedInv, setSelectedInv] = createSignal<number | null>(null);
   const [feedback, setFeedback] = createSignal<'correct' | 'wrong' | null>(null);
+  const [voices] = createSignal([true, true, true, true]);
 
-  // 1. Asegúrate de tener el signal de voces (por si se perdió)
-const [voices] = createSignal([true, true, true, true]);
+  const getActiveNotes = () => {
+    const currentChallenge = challenge();
+    if (!currentChallenge) return [];
+    return currentChallenge.notes.filter((_, index) => voices()[index] ?? true);
+  };
 
-// 2. Inserta esta función:
-const getActiveNotes = () => {
-  const currentChallenge = challenge();
-  if (!currentChallenge) return [];
+  // NUEVO HELPER: Para mostrar la inversión correcta en el overlay de error
+  const getCorrectInvName = () => {
+    const inv = challenge()?.inversion;
+    if (inv === undefined) return "...";
+    const invKeys = ["fundamental", "first", "second", "third"];
+    // @ts-ignore
+    return t(`config.inversions_labels.${invKeys[inv]}`) as string;
+  };
 
-  // Filtramos las notas según el estado de los checkboxes de voces.
-  // Nota 0 suele ser el Bajo, la última nota es el Soprano.
-  return currentChallenge.notes.filter((_, index) => {
-    // Si el acorde tiene 3 notas (tríada), usamos los índices 0, 1 y 2 de voices.
-    // Si tiene 4 (séptima), usamos 0, 1, 2 y 3.
-    return voices()[index] ?? true;
-  });
-};
 
-// 3. (Opcional) La función para cambiar las voces que usa el UI:
-// const toggleVoice = (idx: number) => {
-//   const newVoices = [...voices()];
-//   newVoices[idx] = !newVoices[idx];
-//   setVoices(newVoices);
-// };
+  const getCorrectChordName = () => {
+    const sym = challenge()?.typeSymbol;
+    if (!sym) return "...";
+    // @ts-ignore
+    return t(`chords.${sym}`) as string;
+  };
 
-  // Cargar primer ejercicio
+  
   onMount(() => nextChallenge());
 
   const nextChallenge = async () => {
-    // Verificar si terminamos (si no es infinito)
     if (props.settings.limit !== 'infinite' && count() > props.settings.limit) {
       setIsGameOver(true);
       return;
     }
-
     setFeedback(null);
     setSelectedType(null);
     setSelectedInv(null);
     
-    // 1. Generar reto musical
     const next = generateCustomDictation({
       allowedTypes: props.settings.types,
       allowedInversions: props.settings.inversions
     });
     setChallenge(next);
 
-    // 2. Elegir Instrumento Aleatorio de la lista permitida
-    const availableInstruments = props.settings.instruments;
-    // Fallback a piano si por error viene vacía
-    const randomInstrument = availableInstruments.length > 0 
-      ? availableInstruments[Math.floor(Math.random() * availableInstruments.length)]
-      : 'acoustic_grand_piano';
-    
+    const randomInstrument = props.settings.instruments[Math.floor(Math.random() * props.settings.instruments.length)] || 'acoustic_grand_piano';
     setCurrentInstrument(randomInstrument);
-    
-    // 3. Cargar instrumento y reproducir
     await audioEngine.setInstrument(randomInstrument);
-    
-    // Pequeño delay para asegurar que el usuario esté listo
-    setTimeout(() => audioEngine.play(next.notes), 300);
+    setTimeout(() => audioEngine.play(getActiveNotes()), 300);
   };
 
   const confirmAnswer = () => {
     if (!challenge()) return;
-    
-    const correctType = challenge()!.typeSymbol === selectedType();
-    const correctInv = challenge()!.inversion === selectedInv();
-
-    if (correctType && correctInv) {
+    const isCorrect = challenge()!.typeSymbol === selectedType() && challenge()!.inversion === selectedInv();
+    if (isCorrect) {
       setFeedback('correct');
       setScore(s => s + 1);
     } else {
@@ -106,154 +92,158 @@ const getActiveNotes = () => {
     nextChallenge();
   };
 
-  // Pantalla de Resultados Finales
+  const getSelectedTypeName = () => {
+    if (!selectedType()) return t('config.selectType') as string;
+    return t(`chords.${selectedType()}` as any) as string;
+  };
+
+  const getSelectedInvName = () => {
+    if (selectedInv() === null) return t('config.selectInv') as string;
+    const invKeys = ["fundamental", "first", "second", "third"];
+    return t(`config.inversions_labels.${invKeys[selectedInv()!]}` as any) as string;
+  };
+
   if (isGameOver()) {
     return (
-      <div class="card bg-base-100 shadow-xl max-w-lg mx-auto text-center p-8 animate-in zoom-in">
-        <h2 class="text-3xl font-serif mb-4">¡Entrenamiento Completado!</h2>
-        <div class="stats shadow">
-          <div class="stat">
-            <div class="stat-title">Puntuación Final</div>
-            <div class="stat-value text-primary">{score()} / {props.settings.limit}</div>
-            <div class="stat-desc">Aciertos</div>
-          </div>
+      <div class="card bg-base-100 shadow-2xl max-w-sm mx-auto text-center p-8 mt-10 border border-primary/20">
+        <h2 class="text-2xl font-serif font-bold mb-4">Sesión Finalizada</h2>
+        <div class="stat p-0 mb-6">
+          <div class="stat-title italic">Puntaje</div>
+          <div class="stat-value text-primary text-4xl">{score()} / {props.settings.limit}</div>
         </div>
-        <button class="btn btn-primary mt-8 w-full" onClick={props.onExit}>Volver al Menú</button>
+        <button class="btn btn-primary w-full" onClick={props.onExit}>Menu Principal</button>
       </div>
     );
   }
 
+  
   return (
-    <div class="w-full max-w-6xl mx-auto space-y-4 md:space-y-8 animate-fade-in px-2 md:px-6">
+    <div class="w-full max-w-md mx-auto px-2 space-y-2 animate-fade-in">
       
-      {/* 1. STATUS BAR (Top) */}
-      <div class="flex justify-between items-center bg-base-100 p-3 rounded-2xl shadow-sm border border-base-content/5">
-        <div class="flex flex-col">
-          <span class="text-[10px] uppercase font-bold opacity-50 tracking-tighter">Progreso</span>
-          <span class="font-mono text-lg leading-none">{count()} / {props.settings.limit}</span>
-        </div>
-        <div class="flex flex-col items-end">
-          <span class="text-[10px] uppercase font-bold opacity-50 tracking-tighter">Aciertos</span>
-          <span class="text-secondary font-bold text-lg leading-none">{score()}</span>
-        </div>
-      </div>
-  
-      {/* 2. MAIN GRID */}
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start">
+      {/* 1. BLOQUE SUPERIOR UNIFICADO (Toolbar + Feedback + Pentagrama) */}
+      <div class="flex flex-col bg-base-100 rounded-2xl shadow-xl border border-base-content/10 overflow-hidden">
         
-        {/* COLUMNA IZQUIERDA: AUDIO Y VISUAL (8 columnas en PC) */}
-        <div class="lg:col-span-7 space-y-4">
-          <div class="card bg-base-100 shadow-xl border border-base-content/5 overflow-hidden">
-            <div class="card-body p-4 md:p-8">
-              <div class="flex justify-between items-center mb-4">
-                 <h3 class="font-serif text-xl opacity-70">Escucha Atenta</h3>
-                 <div class="badge badge-outline text-[10px] uppercase">{currentInstrument().replace(/_/g, ' ')}</div>
-              </div>
-  
-              {/* PENTAGRAMA: Fondo crema estilo papel */}
-              <div class="w-full bg-music-paper/10 dark:bg-base-200 rounded-xl p-2 md:p-6 border border-base-content/10 min-h-[180px] flex items-center justify-center">
-                <Show when={feedback()} fallback={
-                  <div class="flex flex-col items-center opacity-20 animate-pulse">
-                    <div class="w-20 h-20 border-4 border-dashed border-current rounded-full flex items-center justify-center">
-                       <span class="text-4xl">?</span>
-                    </div>
-                    <p class="mt-2 text-sm font-serif">Escucha y responde...</p>
-                  </div>
-                }>
-                  <VexStaff notes={challenge()?.notes || []} />
-                </Show>
-              </div>
-  
-              {/* CONTROLES DE AUDIO: Botones grandes para móvil */}
-              <div class="flex gap-4 mt-6">
-                <button 
-                  class="btn btn-primary btn-lg flex-1 shadow-lg active:scale-95 transition-transform" 
-                  onClick={() => challenge() && audioEngine.play(getActiveNotes())}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                  Acorde
-                </button>
-                <button 
-                  class="btn btn-secondary btn-lg flex-1 shadow-lg active:scale-95 transition-transform" 
-                  onClick={() => challenge() && audioEngine.arpeggiate(getActiveNotes())}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-                  Arpegio
-                </button>
-              </div>
+        {/* TOOLBAR SUPERIOR COMPACTA */}
+        <div class="flex items-center justify-between px-3 py-2 bg-base-200/50 border-b border-base-content/5">
+          <div class="flex flex-col">
+            <span class="text-[9px] font-black uppercase opacity-40 tracking-tighter">Instrumento</span>
+            <span class="text-[10px] font-bold text-primary truncate max-w-[100px]">
+              {currentInstrument().replace(/_/g, ' ')}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <p class="text-[9px] font-black opacity-40 uppercase">Progreso</p>
+              <p class="text-xs font-mono font-bold leading-none">{count()} / {props.settings.limit} <span class="text-secondary">+{score()}</span></p>
+            </div>
+            {/* Indicador circular de estado */}
+            <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-base-content/5">
+               <Show when={feedback() === 'correct'}><CircleCheck class="text-success" size={22} /></Show>
+               <Show when={feedback() === 'wrong'}><CircleX class="text-error" size={22} /></Show>
+               <Show when={!feedback()}><div class="w-2 h-2 rounded-full bg-base-300 animate-pulse"></div></Show>
             </div>
           </div>
-  
-          {/* FEEDBACK ALERT (Mobile friendly) */}
-          <Show when={feedback()}>
-            <div class={`alert shadow-lg ${feedback() === 'correct' ? 'alert-success' : 'alert-error'} animate-in slide-in-from-top-4`}>
-               <span class="font-bold">
-                 {feedback() === 'correct' ? '¡Excelente!' : `Incorrecto. Era ${CHORD_TYPES.find(t => t.symbol === challenge()?.typeSymbol)?.label}`}
-               </span>
+        </div>
+
+        {/* BANNER DE FEEDBACK PRE-PREPARADO (Siempre ocupa espacio) */}
+        <div 
+          class="h-9 flex items-center justify-center border-b border-base-content/5 transition-colors duration-300"
+          classList={{
+            'bg-success/10 text-success': feedback() === 'correct',
+            'bg-error/10 text-error': feedback() === 'wrong',
+            'bg-base-100 text-base-content/30': !feedback()
+          }}
+        >
+          <Show 
+            when={feedback()} 
+            fallback={<span class="text-[10px] uppercase font-bold tracking-widest italic">{t('home.subtitle' as any) || 'Escucha el acorde'}</span>}
+          >
+            <div class="flex items-center gap-2 animate-in slide-in-from-top-1 font-bold uppercase text-[11px] tracking-wider">
+              <span>{feedback() === 'correct' ? t('common.correct') as string : `${getCorrectChordName()} - ${getCorrectInvName()}`}</span>
             </div>
           </Show>
         </div>
-  
-        {/* COLUMNA DERECHA: SELECCIÓN (5 columnas en PC) */}
-        <div class="lg:col-span-5 space-y-4">
-          <div class="card bg-base-100 shadow-xl border border-base-content/5">
-            <div class="card-body p-4 md:p-6">
-              
-              <div class="space-y-6">
-                {/* Tipos: Usamos grid de 2 columnas en móvil para que los botones sean grandes */}
-                <div>
-                  <label class="label-text font-bold mb-3 block text-primary">Calidad del Acorde</label>
-                  <div class="grid grid-cols-2 gap-2">
-                    <For each={CHORD_TYPES.filter(t => props.settings.types.includes(t.symbol))}>{(type) => (
-                      <button 
-                        class={`btn btn-md md:btn-sm ${selectedType() === type.symbol ? 'btn-primary' : 'btn-outline opacity-60'}`}
-                        disabled={!!feedback()}
-                        onClick={() => setSelectedType(type.symbol)}
-                      >
-                        {type.label}
-                      </button>
-                    )}</For>
-                  </div>
-                </div>
-  
-                {/* Inversiones */}
-                <div>
-                  <label class="label-text font-bold mb-3 block text-secondary">Estado / Inversión</label>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <For each={props.settings.inversions}>{(inv) => (
-                      <button 
-                        class={`btn btn-md md:btn-sm ${selectedInv() === inv ? 'btn-secondary' : 'btn-outline opacity-60'}`}
-                        disabled={!!feedback()}
-                        onClick={() => setSelectedInv(inv)}
-                      >
-                        {inv === 0 ? 'Fundamental' : `${inv}ª Inv.`}
-                      </button>
-                    )}</For>
-                  </div>
-                </div>
-  
-                {/* ACCIÓN PRINCIPAL */}
-                <div class="pt-4">
-                  <Show when={!feedback()} fallback={
-                    <button class="btn btn-neutral btn-lg w-full gap-2 animate-bounce" onClick={handleNext}>
-                      Siguiente Reto <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    </button>
-                  }>
-                    <button 
-                      class="btn btn-primary btn-lg w-full shadow-xl"
-                      disabled={!selectedType() || selectedInv() === null}
-                      onClick={confirmAnswer}
-                    >
-                      Confirmar
-                    </button>
-                  </Show>
-                </div>
-  
+
+        {/* ÁREA DEL PENTAGRAMA */}
+        <div class="p-2 min-h-[140px] flex items-center justify-center bg-base-100">
+           {/* El VexStaff siempre está ahí o muestra el placeholder central */}
+           <Show when={feedback() || true}> 
+              <VexStaff notes={feedback() ? (challenge()?.notes || []) : []} />
+           </Show>
+        </div>
+
+        {/* BOTONES DE REPRODUCCIÓN INTEGRADOS */}
+        <div class="grid grid-cols-2 border-t border-base-content/10 bg-base-200/30">
+          <button class="btn btn-ghost rounded-none border-r border-base-content/5 gap-2 h-12" onClick={() => challenge() && audioEngine.play(getActiveNotes())}>
+            <Play size={16} class="fill-current" /> <span class="text-[10px] uppercase font-bold">Acorde</span>
+          </button>
+          <button class="btn btn-ghost rounded-none gap-2 h-12" onClick={() => challenge() && audioEngine.arpeggiate(getActiveNotes())}>
+            <Music2 size={16} /> <span class="text-[10px] uppercase font-bold">Arpegio</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. CARD DE SELECCIÓN (Más compacta) */}
+      <div class="card bg-base-100 shadow-lg border border-base-content/5">
+        <div class="card-body p-3 space-y-3">
+          
+          <div class="grid grid-cols-1 gap-2">
+            {/* DROPDOWN CALIDAD */}
+            <div class="dropdown w-full">
+              <label class="text-[9px] uppercase font-black opacity-40 mb-1 block ml-1 tracking-widest">Calidad</label>
+              <div tabindex="0" role="button" class={`btn btn-outline btn-sm h-11 w-full justify-between font-bold border-base-content/10 ${feedback() ? 'btn-disabled' : ''}`}>
+                <span class="truncate">{getSelectedTypeName()}</span>
+                <ChevronDown size={14} />
               </div>
+              <ul tabindex="0" class="dropdown-content z-[30] menu p-1 shadow-2xl bg-base-100 rounded-xl w-full border border-base-content/10 mt-1 max-h-48 overflow-y-auto">
+                <For each={CHORD_TYPES.filter(t => props.settings.types.includes(t.symbol))}>{(type) => (
+                  <li>
+                    <button class="py-2 text-xs font-bold" onClick={() => {(document.activeElement as HTMLElement)?.blur(); setSelectedType(type.symbol)}}>
+                      {t(`chords.${type.symbol}` as any) as string}
+                    </button>
+                  </li>
+                )}</For>
+              </ul>
+            </div>
+
+            {/* DROPDOWN INVERSIÓN */}
+            <div class="dropdown w-full">
+              <label class="text-[9px] uppercase font-black opacity-40 mb-1 block ml-1 tracking-widest">Estado</label>
+              <div tabindex="0" role="button" class={`btn btn-outline btn-sm h-11 w-full justify-between font-bold border-base-content/10 ${feedback() ? 'btn-disabled' : ''}`}>
+                <span class="truncate">{getSelectedInvName()}</span>
+                <ChevronDown size={14} />
+              </div>
+              <ul tabindex="0" class="dropdown-content z-[30] menu p-1 shadow-2xl bg-base-100 rounded-xl w-full border border-base-content/10 mt-1">
+                <For each={props.settings.inversions}>{(inv) => (
+                  <li>
+                    <button class="py-2 text-xs font-bold" onClick={() => {(document.activeElement as HTMLElement)?.blur(); setSelectedInv(inv)}}>
+                      {inv === 0 ? "Fundamental" : `${inv}ª Inversión`}
+                    </button>
+                  </li>
+                )}</For>
+              </ul>
             </div>
           </div>
+
+          {/* BOTÓN DE ACCIÓN PRINCIPAL (Compacto) */}
+          <div class="pt-1">
+            <Show when={!feedback()} fallback={
+              <button class="btn btn-neutral btn-md w-full gap-3 shadow-lg font-black uppercase text-xs" onClick={handleNext}>
+                {t('common.next') as string}
+                <ChevronDown size={18} class="-rotate-90" />
+              </button>
+            }>
+              <button 
+                class="btn btn-primary btn-md w-full shadow-lg font-black uppercase tracking-widest text-xs"
+                disabled={selectedType() === null || selectedInv() === null}
+                onClick={confirmAnswer}
+              >
+                {t('common.confirm') as string}
+              </button>
+            </Show>
+          </div>
         </div>
-  
       </div>
     </div>
   );

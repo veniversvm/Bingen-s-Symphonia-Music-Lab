@@ -14,16 +14,15 @@ export const MainLayout: ParentComponent = (props) => {
     <div class="flex flex-col min-h-screen bg-base-200 transition-colors duration-300">
       {/* 1. TOP HEADER (Adaptive) */}
       <header class="navbar bg-base-100 shadow-sm z-20 sticky top-0 px-4">
-        <div class="flex-1">
-          {/* CAMBIO: Convertimos el span en un link <A> */}
+        <div class="flex-1 min-w-0">
           <A
             href="/"
-            class="font-serif text-xl font-bold text-primary tracking-wide hover:opacity-80 transition-all active:scale-95 no-underline"
+            class="font-serif font-bold text-primary tracking-wide hover:opacity-80 transition-all active:scale-95 no-underline whitespace-nowrap overflow-hidden text-ellipsis block text-base sm:text-lg md:text-xl"
           >
             {t("common.appName")}
           </A>
         </div>
-        {/* DESKTOP NAV (Oculto en móvil 'hidden', visible en md 'md:flex') */}
+                {/* DESKTOP NAV (Oculto en móvil 'hidden', visible en md 'md:flex') */}
         <div class="hidden md:flex flex-none gap-2 mr-4">
           <DesktopNavLink href="/exercises" label={t("nav.practice")} />
           <DesktopNavLink href="/theory" label={t("nav.theory")} />

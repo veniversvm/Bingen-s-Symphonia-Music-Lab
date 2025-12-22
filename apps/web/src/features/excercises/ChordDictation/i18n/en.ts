@@ -7,6 +7,7 @@ export const dict = {
       quantity: "Challenge Quantity",
       instruments: "Timbre & Instruments",
       cta: "Start Training",
+      validationError: "Select at least 2 chord types and 1 inversion",
       limit: {
         infinite: "Infinite",
         placeholder: "Ex: 10",
@@ -18,7 +19,9 @@ export const dict = {
         second: "2nd Inversion",
         third: "3rd Inversion",
         onlySevenths: "(Sevenths only)"
-      }
+      },
+      selectType: "Elegir Calidad",
+      selectInv: "Elegir Estado",
     },
     chords: {
       M: "Major",

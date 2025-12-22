@@ -7,6 +7,7 @@ export const dict = {
       quantity: "Cantidad de Retos",
       instruments: "Timbre e Instrumentos",
       cta: "Comenzar Entrenamiento",
+      validationError: "Selecciona al menos 2 tipos de acorde y 1 inversión",
       limit: {
         infinite: "Infinito",
         placeholder: "Ej: 10",
@@ -18,7 +19,9 @@ export const dict = {
         second: "2ª Inversión",
         third: "3ª Inversión",
         onlySevenths: "(Solo 7mas)"
-      }
+      },
+      selectType: "Elegir Calidad",
+      selectInv: "Elegir Estado",
     },
     chords: {
       M: "Mayor",

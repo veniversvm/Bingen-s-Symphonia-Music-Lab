@@ -2,13 +2,18 @@
 import { createMemo } from "solid-js";
 import { flatten, translator } from "@solid-primitives/i18n";
 import { currentLang } from "../../../../i18n"; // Signal global
-import { dict as es } from "./es"; // Importamos 'dict' y lo llamamos 'es'
-import { dict as en } from "./en"; // Importamos 'dict' y lo llamamos 'en'
+import { es as globalEs } from "../../../../i18n/es"; // Diccionario global ES
+import { en as globalEn } from "../../../../i18n/en"; // Diccionario global EN
+import { dict as localEs } from "./es"; 
+import { dict as localEn } from "./en";
 
-const dictionaries = { es, en };
+// Mezclamos global + local
+const dictionaries = {
+  es: { ...globalEs, ...localEs },
+  en: { ...globalEn, ...localEn }
+};
 
 export const useChordI18n = () => {
-  // createMemo hace que el cambio sea reactivo al signal global
   const dict = createMemo(() => flatten(dictionaries[currentLang()]));
   const t = translator(dict);
   return [t];
