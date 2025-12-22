@@ -1,4 +1,3 @@
-// apps/web/src/features/excercises/ChordDictation/i18n/es.ts
 export const dict = {
     config: {
       title: "Configuración de Práctica",
@@ -8,6 +7,10 @@ export const dict = {
       instruments: "Timbre e Instrumentos",
       cta: "Comenzar Entrenamiento",
       validationError: "Selecciona al menos 2 tipos de acorde y 1 inversión",
+      selectType: "Elegir Calidad",
+      selectInv: "Elegir Estado",
+      finish: "Finalizar",
+      finishEarly: "Terminar",
       limit: {
         infinite: "Infinito",
         placeholder: "Ej: 10",
@@ -19,9 +22,7 @@ export const dict = {
         second: "2ª Inversión",
         third: "3ª Inversión",
         onlySevenths: "(Solo 7mas)"
-      },
-      selectType: "Elegir Calidad",
-      selectInv: "Elegir Estado",
+      }
     },
     chords: {
       M: "Mayor",
@@ -32,5 +33,16 @@ export const dict = {
       m7: "Menor 7",
       m7b5: "Semidisminuido",
       dim7: "Disminuido 7"
+    },
+    summary: {
+      title: "Resultado de la Sesión",
+      perfect: "¡Excelente Maestro!",
+      improve: "Buen trabajo, pero mejorable",
+      review: "Necesitas repasar más",
+      correct: "Aciertos",
+      total: "Total",
+      percentage: "Precisión",
+      retry: "Reintentar",
+      exit: "Finalizar"
     }
   };
