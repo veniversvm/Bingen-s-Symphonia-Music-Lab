@@ -1,7 +1,7 @@
 import { createSignal, onMount, Show, For } from 'solid-js';
 import { generateCustomDictation, CHORD_TYPES, type ChordDictationChallenge } from '@bingens/core';
-import { audioEngine, type InstrumentName } from '../../lib/audio';
-import { VexStaff } from '../../components/music/VexStaff';
+import { audioEngine, type InstrumentName } from '../../../lib/audio';
+import { VexStaff } from '../../../components/music/VexStaff';
 // Asegúrate de que este import coincida con el nombre de tu archivo de config
 import type { ChordDictationSettings } from './ChordDictationConfig'; 
 

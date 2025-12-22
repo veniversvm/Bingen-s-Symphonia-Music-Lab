@@ -11,7 +11,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 // Features (Vistas directas de los juegos)
 const ExercisesList = lazy(() => import('./features/excercises/ExercisesHome'));
 // const ChordConstruction = lazy(() => import('./features/exercises/views/ChordConstruction'));
-const ChordDictation = lazy(() => import('./features/excercises/ChordDictation'));
+const ChordDictation = lazy(() => import('./features/excercises/ChordDictation/ChordDictation'));
 
 function App() {
   return (

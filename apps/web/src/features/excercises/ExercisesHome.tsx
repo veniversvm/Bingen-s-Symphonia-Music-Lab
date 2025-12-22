@@ -1,5 +1,5 @@
 import { A } from '@solidjs/router';
-import { useI18n } from '../../i18n'; // Importar hook
+import { useI18n } from '../../../i18n'; // Importar hook
 
 export default function ExercisesHome() {
   const [t] = useI18n(); // Hook reactivo
