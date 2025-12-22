@@ -37,6 +37,9 @@
   --color-staff: #1C2A39;  
   --color-piano-white: #ffffff;
   --color-piano-black: #1C2A39;
+
+  --warning: #F5B041;      /* Ámbar suave */
+  --warning-content: #1C2A39;
 }
 
 /* MODO OSCURO: Nocturno */
@@ -59,6 +62,9 @@
   --color-staff: #CBD5E1;  
   --color-piano-white: #e2e8f0; 
   --color-piano-black: #0f172a;
+
+  --warning: #FBBF24;      /* Amarillo ámbar vibrante */
+  --warning-content: #0F172A;
 }
 
 /* 5. ESTILOS GLOBALES */

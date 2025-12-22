@@ -22,6 +22,8 @@ export const dict = {
       },
       selectType: "Elegir Calidad",
       selectInv: "Elegir Estado",
+      finish: "Finish",
+finishEarly: "Exit",
     },
     chords: {
       M: "Major",
