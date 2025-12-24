@@ -29,8 +29,9 @@ export const dict = {
       m: "Menor",
       aug: "Aumentado",
       dim: "Disminuido",
-      maj7: "Mayor 7",
+      maj7: "Mayor 7 (M7)",
       m7: "Menor 7",
+      "7": "Dominante 7", // <--- AGREGAR ESTO (Entre comillas porque es un número)
       m7b5: "Semidisminuido",
       dim7: "Disminuido 7"
     },

@@ -1,94 +1,88 @@
-import { createEffect, onMount, onCleanup, createSignal } from "solid-js";
-import {
-  Renderer,
-  Stave,
-  StaveNote,
-  Voice,
-  Formatter,
-  Accidental,
-} from "vexflow";
+import { createEffect, onMount, onCleanup, createSignal } from 'solid-js';
+import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, Annotation } from 'vexflow';
 
-export const VexStaff = (props: { notes: string[]; clef?: string }) => {
+interface VexStaffProps {
+  notes: string[];
+  targetNotes?: string[]; // Notas correctas para comparar (opcional)
+  clef?: string;
+  width?: number;
+}
+
+export const VexStaff = (props: VexStaffProps) => {
   let containerRef: HTMLDivElement | undefined;
-  const [width, setWidth] = createSignal(300);
+  const [containerWidth, setContainerWidth] = createSignal(300);
 
-  // Observador para redimensionar el pentagrama dinámicamente
   const handleResize = () => {
-    if (containerRef) {
-      // Tomamos el ancho real del div, restando padding
-      const newWidth = containerRef.getBoundingClientRect().width;
-      if (newWidth > 50) setWidth(newWidth);
-    }
+    if (containerRef) setContainerWidth(containerRef.getBoundingClientRect().width);
   };
 
   onMount(() => {
     handleResize();
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
   });
+  onCleanup(() => window.removeEventListener('resize', handleResize));
 
-  onCleanup(() => window.removeEventListener("resize", handleResize));
-
-  const renderStaff = (currentNotes: string[], currentWidth: number) => {
+  const renderStaff = (userNotes: string[], targetNotes?: string[]) => {
     if (!containerRef) return;
-    containerRef.innerHTML = "";
+    containerRef.innerHTML = '';
 
+    const width = containerWidth();
     const renderer = new Renderer(containerRef, Renderer.Backends.SVG);
-    // Altura fija para que no salte el layout, ancho dinámico
-    renderer.resize(currentWidth, 150);
+    renderer.resize(width, 180);
     const context = renderer.getContext();
-
-    // Escalar un poco el dibujo en pantallas grandes para legibilidad
-    const scale = currentWidth > 600 ? 1.2 : 1.0;
-    context.scale(scale, scale);
-
     context.setFont("Arial", 10);
     context.setFillStyle("var(--color-staff)");
     context.setStrokeStyle("var(--color-staff)");
 
-    // Ajustar posición del Stave según la escala
-    const staveWidth = currentWidth / scale - 20;
-    const stave = new Stave(10, 20, staveWidth);
-    stave.addClef(props.clef || "treble");
-    stave.setContext(context).draw();
+    const hasComparison = targetNotes && targetNotes.length > 0;
+    const staveWidth = hasComparison ? (width / 2) - 10 : width - 20;
 
-    if (currentNotes.length > 0) {
-      const keys = currentNotes.map(
-        (n) => `${n.slice(0, -1).toLowerCase()}/${n.slice(-1)}`
-      );
-      const chordNote = new StaveNote({
-        keys,
-        duration: "w",
-        clef: props.clef || "treble",
+    // --- COMPÁS 1: USUARIO ---
+    const stave1 = new Stave(10, 40, staveWidth);
+    stave1.addClef(props.clef || 'treble').setContext(context).draw();
+    
+    if (userNotes.length > 0) {
+      const userKeys = userNotes.map(n => `${n.slice(0, -1).toLowerCase()}/${n.slice(-1)}`);
+      const userNote = new StaveNote({ keys: userKeys, duration: "w" });
+      
+      userNotes.forEach((n, i) => {
+        const acc = n.match(/([b#]+)/)?.[1];
+        if (acc) userNote.addModifier(new Accidental(acc), i);
       });
 
-      currentNotes.forEach((noteName, index) => {
-        const accidental = noteName.match(/([b#]+)/)?.[1];
-        if (accidental)
-          chordNote.addModifier(new Accidental(accidental), index);
+      userNote.addModifier(new Annotation(hasComparison ? "TUYO" : "").setVerticalJustification(Annotation.VerticalJustify.TOP), 0);
+      userNote.setStyle({ fillStyle: "var(--primary)", strokeStyle: "var(--primary)" });
+
+      const voice1 = new Voice({ numBeats: 4, beatValue: 4 });
+      voice1.addTickables([userNote]);
+      new Formatter().joinVoices([voice1]).format([voice1], staveWidth - 50);
+      voice1.draw(context, stave1);
+    }
+
+    // --- COMPÁS 2: CORRECTO (Solo si existe targetNotes) ---
+    if (hasComparison) {
+      const stave2 = new Stave(stave1.getWidth() + 10, 40, staveWidth);
+      stave2.setContext(context).draw();
+
+      const targetKeys = targetNotes.map(n => `${n.slice(0, -1).toLowerCase()}/${n.slice(-1)}`);
+      const targetNote = new StaveNote({ keys: targetKeys, duration: "w" });
+      
+      targetNotes.forEach((n, i) => {
+        const acc = n.match(/([b#]+)/)?.[1];
+        if (acc) targetNote.addModifier(new Accidental(acc), i);
       });
 
-      const primaryColor = getComputedStyle(document.documentElement)
-        .getPropertyValue("--primary")
-        .trim();
-      chordNote.setStyle({
-        fillStyle: primaryColor,
-        strokeStyle: primaryColor,
-      });
+      targetNote.addModifier(new Annotation("CORRECTO").setVerticalJustification(Annotation.VerticalJustify.TOP), 0);
+      targetNote.setStyle({ fillStyle: "#06D6A0", strokeStyle: "#06D6A0" }); // Verde esmeralda para el éxito
 
-      const voice = new Voice({ numBeats: 4, beatValue: 4 });
-      voice.addTickables([chordNote]);
-
-      new Formatter().joinVoices([voice]).format([voice], staveWidth - 50);
-      voice.draw(context, stave);
+      const voice2 = new Voice({ numBeats: 4, beatValue: 4 });
+      voice2.addTickables([targetNote]);
+      new Formatter().joinVoices([voice2]).format([voice2], staveWidth - 50);
+      voice2.draw(context, stave2);
     }
   };
 
-  createEffect(() => renderStaff(props.notes, width()));
+  createEffect(() => renderStaff(props.notes, props.targetNotes));
 
-  return (
-    <div
-      ref={containerRef}
-      class="w-full h-[160px] flex items-center justify-center overflow-hidden transition-all"
-    />
-  );
+  return <div ref={containerRef} class="w-full h-full flex items-center justify-center overflow-hidden" />;
 };

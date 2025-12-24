@@ -18,5 +18,16 @@ export const dict = {
       clear: "Clear",
       submit: "Check",
       empty: "Tap the keys to add notes"
-    }
+    },
+    chords: {
+      M: "Major",
+      m: "Minor",
+      aug: "Augmented",
+      dim: "Diminished",
+      maj7: "Major 7",
+      m7: "Minor 7",
+      "7": "Dominant 7", // <--- AGREGAR ESTO
+      m7b5: "Half-Diminished",
+      dim7: "Diminished 7"
+    },
   };

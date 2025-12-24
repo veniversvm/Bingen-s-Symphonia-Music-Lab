@@ -1,8 +1,6 @@
-import { Chord, Note } from "tonal";
+import { Chord, Note, transpose } from "tonal";
 
 // --- INTERFACES ---
-
-// Para el ejercicio de Construcción (Simple)
 export interface ChordChallenge {
   root: string;
   quality: string;
@@ -11,7 +9,6 @@ export interface ChordChallenge {
   prompt: string;
 }
 
-// Para el ejercicio de Dictado (Avanzado)
 export interface ChordDictationChallenge {
   id: string;
   notes: string[];
@@ -21,102 +18,119 @@ export interface ChordDictationChallenge {
   prompt: string;
 }
 
-// Opciones de configuración para el generador personalizado
 export interface GeneratorOptions {
-  allowedTypes: string[];      // Ej: ["M", "m7"]
-  allowedInversions: number[]; // Ej: [0, 1]
+  allowedTypes: string[];      
+  allowedInversions: number[]; 
 }
 
 // --- CONSTANTES ---
-
+// Sincronizado con los símbolos que Tonal.js reconoce perfectamente
 export const CHORD_TYPES = [
-  { label: "Mayor", symbol: "M", quality: "Major" },
-  { label: "Menor", symbol: "m", quality: "Minor" },
-  { label: "Aumentado", symbol: "aug", quality: "Augmented" },
-  { label: "Disminuido", symbol: "dim", quality: "Diminished" },
-  { label: "Mayor 7", symbol: "maj7", quality: "Major 7" },
-  { label: "Menor 7", symbol: "m7", quality: "Minor 7" },
-  { label: "Semidisminuido", symbol: "m7b5", quality: "Half Diminished" },
-  { label: "Disminuido 7", symbol: "dim7", quality: "Diminished 7" }
+  { label: "Mayor", symbol: "M" },
+  { label: "Menor", symbol: "m" },
+  { label: "Aumentado", symbol: "aug" },
+  { label: "Disminuido", symbol: "dim" },
+  { label: "Mayor 7", symbol: "maj7" },
+  { label: "Menor 7", symbol: "m7" },
+  { label: "Dominante 7", symbol: "7" },
+  { label: "Semidisminuido", symbol: "m7b5" },
+  { label: "Disminuido 7", symbol: "dim7" }
 ];
+
+// --- HELPERS DE TEXTO MUSICAL ---
+
+/**
+ * Convierte caracteres ASCII (#, b) a Símbolos Musicales (♯, ♭) para la UI
+ */
+export const beautifyNote = (note: string) => 
+  note.replace(/#/g, '♯').replace(/b/g, '♭');
+
+/**
+ * Convierte Símbolos Musicales (♯, ♭) a ASCII (#, b) para la lógica de Tonal/Vexflow
+ */
+export const sanitizeNote = (note: string) => 
+  note.replace(/♯/g, '#').replace(/♭/g, 'b');
+
+const shiftOctave = (note: string, octaves: number): string => {
+  if (octaves === 0) return note;
+  const interval = octaves > 0 ? "8P" : "-8P";
+  let result = note;
+  for (let i = 0; i < Math.abs(octaves); i++) {
+    result = transpose(result, interval);
+  }
+  return result;
+};
+
+const buildAscendingChord = (notes: string[], startOctave: number): string[] => {
+  let currentOctave = startOctave;
+  let lastMidi = -1;
+
+  return notes.map(noteName => {
+    let noteWithOctave = noteName + currentOctave;
+    let midi = Note.midi(noteWithOctave) || 0;
+
+    if (lastMidi !== -1 && midi < lastMidi) {
+      currentOctave++;
+      noteWithOctave = noteName + currentOctave;
+    }
+    lastMidi = Note.midi(noteWithOctave) || 0;
+    return noteWithOctave;
+  });
+};
 
 // --- GENERADORES ---
 
-/**
- * 1. GENERADOR DE CONSTRUCCIÓN (Niveles predefinidos)
- * Usado en: ChordConstruction.tsx
- */
 export const generateCustomDictation = (options: GeneratorOptions): ChordDictationChallenge => {
-    const roots = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
-    
-    // 1. Tipos
-    const availableTypes = CHORD_TYPES.filter(t => options.allowedTypes.includes(t.symbol));
-    const safeTypes = availableTypes.length > 0 ? availableTypes : [CHORD_TYPES[0]];
+  // Definimos las raíces con símbolos UNICODE para que el prompt se vea profesional
+  const roots = ["C", "C♯", "D♭", "D", "D♯", "E♭", "E", "F", "F♯", "G♭", "G", "G♯", "A♭", "A", "A♯", "B♭", "B", "C♭"];
+  const randomRoot = roots[Math.floor(Math.random() * roots.length)];
   
-    const randomRoot = roots[Math.floor(Math.random() * roots.length)];
-    const randomType = safeTypes[Math.floor(Math.random() * safeTypes.length)];
-    
-    const chord = Chord.get(`${randomRoot}${randomType.symbol}`);
-    
-    // 2. CONSTRUCCIÓN ASCENDENTE (Base en Octava 4)
-    // Esto asegura que G-Bb-D sea G4-Bb4-D5 (Fundamental Estricta)
-    let currentOctave = 4;
-    let lastMidi = -1;
+  const availableTypes = CHORD_TYPES.filter(t => options.allowedTypes.includes(t.symbol));
+  const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)] || CHORD_TYPES[0];
+
+  // IMPORTANTE: Antes de pasarlo a Tonal, convertimos el root Unicode a ASCII
+  const asciiRoot = sanitizeNote(randomRoot);
+  const chord = Chord.get(`${asciiRoot}${selectedType.symbol}`);
   
-    let notes = chord.notes.map(noteName => {
-      // Intentamos con la octava actual
-      let noteWithOctave = noteName + currentOctave;
-      let midi = Note.midi(noteWithOctave) || 0;
-  
-      // Si la nota bajó respecto a la anterior (ej: G4 -> D4), subimos octava (G4 -> D5)
-      // para mantener el orden ascendente estricto.
-      if (lastMidi !== -1 && midi < lastMidi) {
-        currentOctave++;
-        noteWithOctave = noteName + currentOctave;
-        midi = Note.midi(noteWithOctave) || 0;
-      }
-  
-      lastMidi = midi;
-      return noteWithOctave;
-    });
-  
-    // 3. APLICAR INVERSIÓN
-    const maxPossibleInv = notes.length - 1;
-    const validInversions = options.allowedInversions.filter(inv => inv <= maxPossibleInv);
-    const safeInversions = validInversions.length > 0 ? validInversions : [0];
-    const inversion = safeInversions[Math.floor(Math.random() * safeInversions.length)];
-  
-    // Rotamos las notas y subimos octava de las que pasan al final
-    const invertedNotes = [...notes];
-    for (let i = 0; i < inversion; i++) {
-      const note = invertedNotes.shift(); 
-      if (note) {
-        const midi = Note.midi(note);
-        const nextOctave = Note.fromMidi((midi || 0) + 12);
-        invertedNotes.push(nextOctave);
-      }
-    }
-  
-    // 4. NORMALIZACIÓN VISUAL (CENTRAR EN PENTAGRAMA)
-    // Calculamos la altura promedio del acorde resultante
-    const avgMidi = invertedNotes.reduce((sum, n) => sum + (Note.midi(n) || 0), 0) / invertedNotes.length;
-    
-    // El centro ideal del pentagrama (Clave de Sol) es B4 (Midi 71)
-    // Si el acorde está muy agudo (promedio > 74, aprox Re5), lo bajamos una octava completa.
-    let finalNotes = invertedNotes;
-    if (avgMidi > 74) {
-       finalNotes = invertedNotes.map(n => {
-          const midi = Note.midi(n) || 0;
-          return Note.fromMidi(midi - 12); // Bajar 1 octava
-       });
-    }
-  
-    return {
-      id: crypto.randomUUID(),
-      notes: finalNotes,
-      root: randomRoot,
-      typeSymbol: randomType.symbol,
-      inversion: inversion,
-      prompt: "Identifica el Acorde"
-    };
+  let notes = buildAscendingChord(chord.notes, 4);
+
+  const maxPhysicalInversion = notes.length - 1;
+  const validInversions = options.allowedInversions.filter(inv => inv <= maxPhysicalInversion);
+  const selectedInversion = validInversions[Math.floor(Math.random() * validInversions.length)] || 0;
+
+  let finalNotes = [...notes];
+  for (let i = 0; i < selectedInversion; i++) {
+    const n = finalNotes.shift()!;
+    finalNotes.push(shiftOctave(n, 1));
+  }
+
+  return {
+    id: window.crypto.randomUUID(),
+    notes: finalNotes, // Mantenemos ASCII interno para Vexflow
+    root: randomRoot,  // Enviamos UNICODE para el Banner del front
+    typeSymbol: selectedType.symbol,
+    inversion: selectedInversion,
+    prompt: "Construye / Identifica"
   };
+};
+
+/**
+ * Generador simplificado
+ */
+export const generateChordChallenge = (level: number = 1): ChordChallenge => {
+  const roots = ["C", "G", "F", "D", "A", "E♭", "B♭"];
+  const qualities = level === 1 ? ["M", "m"] : ["M7", "m7", "7"];
+  const randomRoot = roots[Math.floor(Math.random() * roots.length)];
+  const randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
+  
+  const asciiRoot = sanitizeNote(randomRoot);
+  const chord = Chord.get(`${asciiRoot}${randomQuality}`);
+  
+  return {
+    root: randomRoot,
+    quality: chord.type,
+    symbol: chord.symbol,
+    notes: buildAscendingChord(chord.notes, 4),
+    prompt: `Construye: ${randomRoot} ${chord.name}`
+  };
+};

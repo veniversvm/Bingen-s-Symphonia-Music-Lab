@@ -31,6 +31,7 @@ export const dict = {
       dim: "Diminished",
       maj7: "Major 7",
       m7: "Minor 7",
+      "7": "Dominant 7", // <--- AGREGAR ESTO
       m7b5: "Half-Diminished",
       dim7: "Diminished 7"
     },
@@ -44,5 +45,6 @@ export const dict = {
       percentage: "Accuracy",
       retry: "Retry",
       exit: "Finalize"
-    }
+    },
+    
   };

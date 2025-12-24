@@ -7,7 +7,14 @@ import {
 import { audioEngine, type InstrumentName } from "../../../lib/audio";
 import { VexStaff } from "../../../components/music/VexStaff";
 import { useChordI18n } from "./i18n";
-import { CircleCheck, CircleX, ChevronDown, Play, Music2, LogOut } from "lucide-solid";
+import { 
+  CircleCheck, 
+  CircleX, 
+  ChevronDown, 
+  Play, 
+  Music2, 
+  LogOut 
+} from "lucide-solid";
 import type { ChordDictationSettings } from "./ChordDictationConfig";
 import { ExerciseSummary } from "../ExerciseSummary";
 
@@ -33,9 +40,7 @@ export const ChordDictationGame = (props: Props) => {
   const isLastExercise = () => 
     props.settings.limit !== "infinite" && count() === props.settings.limit;
 
-  const finishSession = () => {
-    setIsGameOver(true);
-  };
+  const finishSession = () => setIsGameOver(true);
 
   const handleNext = () => {
     if (isLastExercise()) {
@@ -59,19 +64,21 @@ export const ChordDictationGame = (props: Props) => {
     return currentChallenge.notes.filter((_, index) => voices()[index] ?? true);
   };
 
-  // --- HELPERS DE TRADUCCIÓN PARA EL BANNER ---
+  // --- HELPERS DE TRADUCCIÓN (Evitan el "Undefined" o "Era: ...") ---
+
+  const getCorrectChordName = () => {
+    const sym = challenge()?.typeSymbol;
+    if (!sym) return "...";
+    // @ts-ignore
+    return t(`chords.${sym}`) as string;
+  };
 
   const getCorrectInvName = () => {
     const inv = challenge()?.inversion;
     if (inv === undefined) return "...";
     const invKeys = ["fundamental", "first", "second", "third"];
-    return t(`config.inversions_labels.${invKeys[inv]}` as any) as string;
-  };
-
-  const getCorrectChordName = () => {
-    const sym = challenge()?.typeSymbol;
-    if (!sym) return "...";
-    return t(`chords.${sym}` as any) as string;
+    // @ts-ignore
+    return t(`config.inversions_labels.${invKeys[inv]}`) as string;
   };
 
   const getSelectedTypeName = () => {
@@ -82,7 +89,8 @@ export const ChordDictationGame = (props: Props) => {
   const getSelectedInvName = () => {
     if (selectedInv() === null) return t("config.selectInv" as any) as string;
     const invKeys = ["fundamental", "first", "second", "third"];
-    return t(`config.inversions_labels.${invKeys[selectedInv()!]}` as any) as string;
+    // @ts-ignore
+    return t(`config.inversions_labels.${invKeys[selectedInv()!]}`) as string;
   };
 
   // --- CICLO DE JUEGO ---
@@ -100,20 +108,16 @@ export const ChordDictationGame = (props: Props) => {
     });
     setChallenge(next);
 
-    const availableInstruments = props.settings.instruments;
-    const randomInstrument = availableInstruments[Math.floor(Math.random() * availableInstruments.length)] || "acoustic_grand_piano";
+    const randomInstrument = props.settings.instruments[Math.floor(Math.random() * props.settings.instruments.length)] || "acoustic_grand_piano";
     setCurrentInstrument(randomInstrument);
     await audioEngine.setInstrument(randomInstrument);
     
-    // Tocar el nuevo acorde (respetando si hay voces muteadas)
     setTimeout(() => audioEngine.play(getActiveNotes()), 300);
   };
 
   const confirmAnswer = () => {
     if (!challenge()) return;
-    const isCorrect =
-      challenge()!.typeSymbol === selectedType() &&
-      challenge()!.inversion === selectedInv();
+    const isCorrect = challenge()!.typeSymbol === selectedType() && challenge()!.inversion === selectedInv();
     if (isCorrect) {
       setFeedback("correct");
       setScore((s) => s + 1);
@@ -128,7 +132,7 @@ export const ChordDictationGame = (props: Props) => {
       fallback={
         <ExerciseSummary
           score={score()}
-          total={Math.max(feedback() ? count() : count() - 1, 0)}
+          total={feedback() ? count() : count() - 1}
           onRetry={resetGame} 
           onExit={props.onExit}
         />
@@ -136,7 +140,7 @@ export const ChordDictationGame = (props: Props) => {
     >
       <div class="w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-2 space-y-3 md:space-y-6 animate-fade-in pb-10">
         
-        {/* BLOQUE SUPERIOR UNIFICADO: CONSOLA MUSICAL */}
+        {/* 1. BLOQUE SUPERIOR UNIFICADO (Toolbar + Banner + Staff) */}
         <div class="flex flex-col bg-base-100 rounded-2xl shadow-xl border border-base-content/10 overflow-hidden transition-all">
           
           {/* TOOLBAR */}
@@ -161,20 +165,20 @@ export const ChordDictationGame = (props: Props) => {
             <div class="flex items-center gap-3 md:gap-6 text-right">
               <div>
                 <p class="text-[9px] md:text-xs font-black opacity-40 uppercase tracking-widest leading-none mb-1">Progreso</p>
-                <p class="text-xs md:text-lg font-mono font-bold leading-none">
+                <p class="text-xs md:text-base font-mono font-bold leading-none">
                   {count()} <span class="opacity-30 text-[10px]">{props.settings.limit !== 'infinite' ? `/ ${props.settings.limit}` : '∞'}</span>
                   <span class="text-secondary ml-2">+{score()}</span>
                 </p>
               </div>
-              <div class="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 border-base-content/5 bg-base-100 shadow-inner">
+              <div class="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 border-base-content/5 shadow-inner bg-base-100">
                  <Show when={feedback() === 'correct'}><CircleCheck class="text-success" size={26} /></Show>
                  <Show when={feedback() === 'wrong'}><CircleX class="text-error" size={26} /></Show>
-                 <Show when={!feedback()}><div class="w-2 h-2 md:w-3 md:h-3 rounded-full bg-base-300 animate-pulse"></div></Show>
+                 <Show when={!feedback()}><div class="w-2 h-2 rounded-full bg-base-300 animate-pulse"></div></Show>
               </div>
             </div>
           </div>
 
-          {/* BANNER DE FEEDBACK PRE-PREPARADO */}
+          {/* BANNER DE FEEDBACK PRE-PREPARADO (Evita saltos de layout) */}
           <div 
             class="h-9 md:h-14 flex items-center justify-center border-b border-base-content/5 transition-all duration-300"
             classList={{
@@ -188,31 +192,34 @@ export const ChordDictationGame = (props: Props) => {
               fallback={<span class="text-[10px] md:text-xs uppercase font-bold tracking-widest italic opacity-50">Escucha el acorde</span>}
             >
               <div class="flex items-center gap-2 animate-in slide-in-from-top-1 font-bold uppercase text-[11px] md:text-lg tracking-wider">
-                <span>{feedback() === 'correct' ? (t('common.correct' as any) as string) : `${getCorrectChordName()} - ${getCorrectInvName()}`}</span>
+                <span>
+                  {feedback() === 'correct' 
+                    ? (t('common.correct' as any) as string) 
+                    : `${getCorrectChordName()} - ${getCorrectInvName()}`}
+                </span>
               </div>
             </Show>
           </div>
 
           {/* ÁREA DEL PENTAGRAMA */}
           <div class="p-2 md:p-8 min-h-[140px] md:min-h-[280px] flex items-center justify-center bg-base-100">
-             {/* Solo mostramos la respuesta en el pentagrama tras responder */}
              <VexStaff notes={feedback() ? (challenge()?.notes || []) : []} />
           </div>
 
           {/* BOTONES DE REPRODUCCIÓN */}
           <div class="grid grid-cols-2 border-t border-base-content/10 bg-base-200/30">
             <button class="btn btn-ghost rounded-none border-r border-base-content/5 gap-2 h-12 md:h-16" onClick={() => challenge() && audioEngine.play(getActiveNotes())}>
-              <Play size={16} class="fill-current" /> <span class="text-[10px] md:text-sm uppercase font-black tracking-widest">Acorde</span>
+              <Play size={16} class="fill-current" /> <span class="text-[10px] md:text-sm uppercase font-black">Acorde</span>
             </button>
             <button class="btn btn-ghost rounded-none gap-2 h-12 md:h-16" onClick={() => challenge() && audioEngine.arpeggiate(getActiveNotes())}>
-              <Music2 size={16} /> <span class="text-[10px] md:text-sm uppercase font-black tracking-widest">Arpegio</span>
+              <Music2 size={16} /> <span class="text-[10px] md:text-sm uppercase font-black">Arpegio</span>
             </button>
           </div>
         </div>
 
-        {/* CARD DE SELECCIÓN */}
+        {/* 2. CARD DE SELECCIÓN (Compacta) */}
         <div class="card bg-base-100 shadow-lg border border-base-content/5">
-          <div class="card-body p-3 md:p-8 space-y-4 md:space-y-6">
+          <div class="card-body p-3 md:p-8 space-y-3 md:space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
               
               {/* DROPDOWN CALIDAD */}
@@ -225,7 +232,7 @@ export const ChordDictationGame = (props: Props) => {
                 <ul tabindex="0" class="dropdown-content z-[30] menu p-1 shadow-2xl bg-base-100 rounded-xl w-full border border-base-content/10 mt-1 max-h-60 overflow-y-auto">
                   <For each={CHORD_TYPES.filter(t => props.settings.types.includes(t.symbol))}>{(type) => (
                     <li>
-                      <button class="py-3 md:text-base font-bold" onClick={() => {(document.activeElement as HTMLElement)?.blur(); setSelectedType(type.symbol)}}>
+                      <button class="py-3 md:text-base font-bold text-left" onClick={() => {(document.activeElement as HTMLElement)?.blur(); setSelectedType(type.symbol)}}>
                         {t(`chords.${type.symbol}` as any) as string}
                       </button>
                     </li>
@@ -243,7 +250,7 @@ export const ChordDictationGame = (props: Props) => {
                 <ul tabindex="0" class="dropdown-content z-[30] menu p-1 shadow-2xl bg-base-100 rounded-xl w-full border border-base-content/10 mt-1">
                   <For each={props.settings.inversions}>{(inv) => (
                     <li>
-                      <button class="py-3 md:text-base font-bold" onClick={() => {(document.activeElement as HTMLElement)?.blur(); setSelectedInv(inv)}}>
+                      <button class="py-3 md:text-base font-bold text-left" onClick={() => {(document.activeElement as HTMLElement)?.blur(); setSelectedInv(inv)}}>
                         {t(`config.inversions_labels.${["fundamental", "first", "second", "third"][inv]}` as any) as string}
                       </button>
                     </li>
