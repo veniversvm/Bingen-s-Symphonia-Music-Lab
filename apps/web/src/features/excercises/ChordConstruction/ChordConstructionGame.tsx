@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, createMemo, createEffect } from "solid-js";
+import { createSignal, onMount, Show, createMemo } from "solid-js";
 import {
   NoteUtils,
   generateCustomDictation,
@@ -6,7 +6,10 @@ import {
 } from "@bingens/core";
 import { audioEngine, type InstrumentName } from "../../../lib/audio";
 import { VexStaff } from "../../../components/music/VexStaff";
-import { PianoInput, type SpellingMode } from "../../../components/music/PianoInput";
+import {
+  PianoInput,
+  type SpellingMode,
+} from "../../../components/music/PianoInput";
 import { useChordI18n } from "../ChordDictation/i18n";
 import {
   CircleCheck,
@@ -14,9 +17,9 @@ import {
   ChevronDown,
   Undo2,
   Send,
-  LogOut,
   Music2,
   Play,
+  Music,
 } from "lucide-solid";
 import { ExerciseSummary } from "../ExerciseSummary";
 import type { ChordDictationSettings } from "../ChordDictation/ChordDictationConfig";
@@ -28,78 +31,72 @@ interface Props {
 
 export const ChordConstructionGame = (props: Props) => {
   const [t] = useChordI18n();
-  const [challenge, setChallenge] = createSignal<ChordDictationChallenge | null>(null);
+  const [challenge, setChallenge] =
+    createSignal<ChordDictationChallenge | null>(null);
   const [userNotes, setUserNotes] = createSignal<string[]>([]);
   const [spellingMode, setSpellingMode] = createSignal<SpellingMode>("mixed");
   const [count, setCount] = createSignal(1);
   const [score, setScore] = createSignal(0);
   const [isGameOver, setIsGameOver] = createSignal(false);
-  const [feedback, setFeedback] = createSignal<"correct" | "wrong" | null>(null);
-  const [currentInstrument] = createSignal<InstrumentName>("acoustic_grand_piano");
+  const [feedback, setFeedback] = createSignal<"correct" | "wrong" | null>(
+    null
+  );
+  const [currentInstrument] = createSignal<InstrumentName>(
+    "acoustic_grand_piano"
+  );
 
-  // --- LÓGICA DE RE-DELETREO ---
-  const translateNote = (note: string, mode: SpellingMode): string => {
-    const midi = NoteUtils.midi(note);
-    if (midi === null) return note;
-    const pc = midi % 12;
-    const oct = Math.floor(midi / 12) - 1;
-    const map: any = {
-      0: { mixed: "C", sharp: "C", flat: "C" }, 1: { mixed: "C#", sharp: "C#", flat: "Db" },
-      2: { mixed: "D", sharp: "D", flat: "D" }, 3: { mixed: "Eb", sharp: "D#", flat: "Eb" },
-      4: { mixed: "E", sharp: "E", flat: "E" }, 5: { mixed: "F", sharp: "F", flat: "F" },
-      6: { mixed: "F#", sharp: "F#", flat: "Gb" }, 7: { mixed: "G", sharp: "G", flat: "G" },
-      8: { mixed: "Ab", sharp: "G#", flat: "Ab" }, 9: { mixed: "A", sharp: "A", flat: "A" },
-      10: { mixed: "Bb", sharp: "A#", flat: "Bb" }, 11: { mixed: "B", sharp: "B", flat: "B" }
-    };
-    let name = map[pc][mode];
-    if (mode === 'sharp') { if (pc === 5) name = "E#"; if (pc === 0) name = "B#"; }
-    else if (mode === 'flat') { if (pc === 4) name = "Fb"; if (pc === 11) name = "Cb"; }
-    let finalOct = oct;
-    if (mode === 'sharp' && pc === 0 && name === "B#") finalOct = oct - 1;
-    if (mode === 'flat' && pc === 11 && name === "Cb") finalOct = oct + 1;
-    return `${name}${finalOct}`;
+  // --- LÓGICA DE SESIÓN ---
+
+  const isLastExercise = () =>
+    props.settings.limit !== "infinite" && count() === props.settings.limit;
+
+  // ESTA ES LA FUNCIÓN QUE FALTABA
+  const finishSession = () => setIsGameOver(true);
+
+  const handleNext = () => {
+    if (isLastExercise()) {
+      finishSession();
+    } else {
+      setCount((c) => c + 1);
+      nextChallenge();
+    }
   };
 
-  createEffect(() => {
-    const mode = spellingMode();
-    const current = userNotes();
-    if (current.length === 0) return;
-    const respelled = current.map(n => translateNote(n, mode));
-    if (JSON.stringify(respelled) !== JSON.stringify(current)) setUserNotes(respelled);
-  });
-
-  // --- LÓGICA DE CONTROL ---
-  const sortedUserNotes = createMemo(() => {
-    return [...userNotes()].sort((a, b) => (NoteUtils.midi(a) ?? 0) - (NoteUtils.midi(b) ?? 0));
-  });
-
-  const isLastExercise = () => props.settings.limit !== "infinite" && count() === props.settings.limit;
+  const resetGame = () => {
+    setCount(1);
+    setScore(0);
+    setIsGameOver(false);
+    nextChallenge();
+  };
 
   const nextChallenge = async () => {
     setFeedback(null);
     setUserNotes([]);
-    setChallenge(generateCustomDictation({
+    const next = generateCustomDictation({
       allowedTypes: props.settings.types,
       allowedInversions: props.settings.inversions,
-    }));
-    await audioEngine.setInstrument(props.settings.instruments[0] || "acoustic_grand_piano");
+    });
+    setChallenge(next);
+    await audioEngine.setInstrument(
+      props.settings.instruments[0] || "acoustic_grand_piano"
+    );
   };
 
-  const handleNext = () => {
-    if (isLastExercise()) setIsGameOver(true);
-    else { setCount(c => c + 1); nextChallenge(); }
-  };
+  // --- LÓGICA MUSICAL ---
 
-  const resetGame = () => {
-    setCount(1); setScore(0); setIsGameOver(false); nextChallenge();
-  };
+  const sortedUserNotes = createMemo(() => {
+    return [...userNotes()].sort(
+      (a, b) => (NoteUtils.midi(a) ?? 0) - (NoteUtils.midi(b) ?? 0)
+    );
+  });
 
   const handleNoteInput = (note: string) => {
     if (feedback()) return;
     const midi = NoteUtils.midi(note);
     const existing = userNotes().find((n) => NoteUtils.midi(n) === midi);
-    if (existing) setUserNotes(userNotes().filter((n) => n !== existing));
-    else {
+    if (existing) {
+      setUserNotes(userNotes().filter((n) => n !== existing));
+    } else {
       if (userNotes().length >= 4) return;
       setUserNotes([...userNotes(), note]);
       audioEngine.play([note]);
@@ -114,11 +111,19 @@ export const ChordConstructionGame = (props: Props) => {
   const checkAnswer = () => {
     const correctNotes = challenge()?.notes;
     if (!correctNotes || userNotes().length === 0) return;
-    const simplify = (notes: string[]) => notes.map((n) => n.replace(/\d/g, ""));
-    if (JSON.stringify(simplify(sortedUserNotes())) === JSON.stringify(simplify(correctNotes))) {
-      setFeedback("correct"); setScore((s) => s + 1); audioEngine.play(sortedUserNotes());
+
+    const simplify = (notes: string[]) =>
+      notes.map((n) => n.replace(/\d/g, ""));
+    const userSimplified = simplify(sortedUserNotes());
+    const targetSimplified = simplify(correctNotes);
+
+    if (JSON.stringify(userSimplified) === JSON.stringify(targetSimplified)) {
+      setFeedback("correct");
+      setScore((s) => s + 1);
+      audioEngine.play(sortedUserNotes());
     } else {
-      setFeedback("wrong"); setTimeout(() => audioEngine.arpeggiate(correctNotes), 500);
+      setFeedback("wrong");
+      setTimeout(() => audioEngine.arpeggiate(correctNotes), 500);
     }
   };
 
@@ -130,136 +135,303 @@ export const ChordConstructionGame = (props: Props) => {
   const getCorrectInvName = () => {
     const inv = challenge()?.inversion;
     const invKeys = ["fundamental", "first", "second", "third"];
-    return inv !== undefined ? (t(`config.inversions_labels.${invKeys[inv]}` as any) as string) : "...";
+    return inv !== undefined
+      ? (t(`config.inversions_labels.${invKeys[inv]}` as any) as string)
+      : "...";
   };
 
   onMount(() => nextChallenge());
 
   return (
-    <Show when={!isGameOver()} fallback={<ExerciseSummary score={score()} total={feedback() ? count() : count() - 1} onRetry={resetGame} onExit={props.onExit} />}>
-      <div class="w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-2 space-y-3 md:space-y-6 animate-fade-in pb-10">
-        
-        {/* 1. BLOQUE SUPERIOR (CONSOLA) */}
-        <div class="flex flex-col bg-base-100 rounded-2xl shadow-xl border border-base-content/10 overflow-hidden">
-          
-          {/* TOOLBAR */}
-          <div class="flex items-center justify-between px-3 py-2 md:px-6 md:py-4 bg-base-200/50 border-b border-base-content/5">
-            <div class="flex items-center gap-2">
-              <button onClick={() => setIsGameOver(true)} class="btn btn-ghost btn-xs md:btn-sm text-error font-black gap-1 uppercase">
-                <LogOut size={14} /> <span>{t("config.finishEarly" as any)}</span>
-              </button>
-              <div class="divider divider-horizontal mx-0 opacity-20 hidden sm:flex"></div>
-              <div class="flex flex-col">
-                <span class="text-[9px] md:text-xs font-black uppercase opacity-40">Instrumento</span>
-                <span class="text-[10px] md:text-sm font-bold text-primary truncate max-w-[80px]">
-                   {currentInstrument().replace(/_/g, ' ')}
+    <Show
+      when={!isGameOver()}
+      fallback={
+        <ExerciseSummary
+          score={score()}
+          total={Math.max(feedback() ? count() : count() - 1, 0)}
+          onRetry={resetGame}
+          onExit={props.onExit}
+        />
+      }
+    >
+      <div class="w-full max-w-7xl mx-auto px-2 sm:px-3 md:px-4 animate-fade-in pb-6">
+        {/* GRID RESPONSIVO PRINCIPAL */}
+        <div
+          class="
+          grid
+          grid-cols-1
+          lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]
+          gap-4
+          items-stretch
+        "
+        >
+          {/* ================= IZQUIERDA: MONITOR ================= */}
+          <div class="flex flex-col bg-base-100 rounded-3xl shadow-xl border border-base-content/10 overflow-hidden min-h-0">
+            {/* TOOLBAR */}
+            <div class="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-base-200/50 border-b border-base-content/5">
+              <div class="flex items-center gap-3">
+                <button
+                  onClick={finishSession}
+                  class="btn btn-ghost btn-xs text-error font-black uppercase"
+                >
+                  {t("config.finishEarly" as any) || "Terminar"}
+                </button>
+                <span class="text-[10px] font-bold text-primary opacity-60 uppercase truncate max-w-[140px]">
+                  {currentInstrument().replace(/_/g, " ")}
                 </span>
+              </div>
+
+              <div class="flex items-center gap-4">
+                <div class="text-right leading-none">
+                  <p class="text-[10px] font-black opacity-30 uppercase tracking-tighter">
+                    Progreso
+                  </p>
+                  <p class="text-sm font-mono font-bold">
+                    {count()} / {props.settings.limit}
+                    {/* <span class="text-secondary"> +{score()}</span> */}
+                  </p>
+                </div>
+
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 border-base-content/5 bg-base-100 shadow-inner">
+                  <Show when={feedback() === "correct"}>
+                    <CircleCheck class="text-success" size={26} />
+                  </Show>
+                  <Show when={feedback() === "wrong"}>
+                    <CircleX class="text-error" size={26} />
+                  </Show>
+                  <Show when={!feedback()}>
+                    <div class="w-2 h-2 rounded-full bg-base-300 animate-pulse"></div>
+                  </Show>
+                </div>
               </div>
             </div>
 
-            <div class="flex items-center gap-3 md:gap-6 text-right">
-              <div>
-                <p class="text-[9px] md:text-xs font-black opacity-40 uppercase">Progreso</p>
-                <p class="text-xs md:text-base font-mono font-bold leading-none">
-                  {count()} / {props.settings.limit} <span class="text-secondary">+{score()}</span>
-                </p>
-              </div>
-              <div class="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 border-base-content/5">
-                <Show when={feedback() === "correct"}><CircleCheck size={26} class="text-success" /></Show>
-                <Show when={feedback() === "wrong"}><CircleX size={26} class="text-error" /></Show>
-                <Show when={!feedback()}><div class="w-2 h-2 rounded-full bg-base-300 animate-pulse" /></Show>
-              </div>
-            </div>
-          </div>
-
-          {/* BANNER DE INSTRUCCIÓN (RESTAURADO) */}
-          <div 
-            class="h-12 md:h-20 flex items-center justify-center border-b border-base-content/5 transition-all duration-300 px-4 text-center"
-            classList={{
-              'bg-success/10 text-success': feedback() === 'correct',
-              'bg-error/10 text-error': feedback() === 'wrong',
-              'bg-primary/5 text-primary': !feedback()
-            }}
-          >
-            <div class="flex items-center gap-2 font-bold uppercase text-sm md:text-xl tracking-widest">
-              <Show when={feedback()} fallback={
-                <span class="flex flex-col md:flex-row items-center gap-1 md:gap-3">
-                  <span class="opacity-40 text-[10px] md:text-xs lowercase font-serif italic">construir:</span>
-                  <span class="animate-in fade-in slide-in-from-left-2">{challenge()?.root} {getCorrectChordName()} — {getCorrectInvName()}</span>
-                </span>
-              }>
-                <span class="animate-in zoom-in duration-300">
-                  {feedback() === 'correct' ? t('common.correct') : `${challenge()?.root} ${getCorrectChordName()} — ${getCorrectInvName()}`}
-                </span>
+            {/* BANNER DE FEEDBACK REDUCIDO (Aquí está el cambio clave) */}
+            <div
+              class="py-1 flex items-center justify-center border-b border-base-content/5 transition-all duration-300 px-4 min-h-[2rem]"
+              classList={{
+                "bg-success/10 text-success": feedback() === "correct",
+                "bg-error/10 text-error": feedback() === "wrong",
+                "bg-primary/5 text-primary": !feedback(),
+              }}
+            >
+              <Show
+                when={feedback()}
+                fallback={
+                  <div class="flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-tighter sm:tracking-widest">
+                    <span class="opacity-40 lowercase font-serif italic font-normal">
+                      construir:
+                    </span>
+                    <span>
+                      {challenge()?.root} {getCorrectChordName()}
+                    </span>
+                    <span class="opacity-30">—</span>
+                    <span class="opacity-70">{getCorrectInvName()}</span>
+                  </div>
+                }
+              >
+                <div class="flex items-center gap-3 animate-in zoom-in duration-300">
+                  <span class="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em]">
+                    {feedback() === "correct"
+                      ? "¡CORRECTO!"
+                      : "RESPUESTA CORRECTA"}
+                  </span>
+                  {feedback() === "wrong" && (
+                    <span class="text-[9px] font-bold opacity-70 border-l border-current pl-3">
+                      {challenge()?.root} {getCorrectChordName()}
+                    </span>
+                  )}
+                </div>
               </Show>
             </div>
-          </div>
 
-          {/* ÁREA DEL PENTAGRAMA */}
-          <div class="p-2 md:p-8 min-h-[160px] md:min-h-[300px] flex items-center justify-center bg-base-100">
-            <VexStaff notes={sortedUserNotes()} targetNotes={feedback() ? challenge()?.notes : []} />
-          </div>
+            {/* PENTAGRAMA */}
+            <div class="flex-grow flex items-center justify-center p-3 sm:p-4 md:p-6 xl:p-8 bg-base-100">
+              <VexStaff
+                notes={sortedUserNotes()}
+                targetNotes={feedback() ? challenge()?.notes : []}
+              />
+            </div>
 
-          {/* REPRODUCCIÓN */}
-          <div class="grid grid-cols-2 border-t border-base-content/10 bg-base-200/30">
-            <button class="btn btn-ghost rounded-none border-r border-base-content/5 gap-2 h-12 md:h-16" onClick={() => audioEngine.play(sortedUserNotes())} disabled={userNotes().length === 0}>
-              <Play size={18} class="fill-current" /> <span class="text-[10px] md:text-sm uppercase font-black">Mi Acorde</span>
-            </button>
-            <button class="btn btn-ghost rounded-none gap-2 h-12 md:h-16" onClick={() => challenge() && audioEngine.arpeggiate(challenge()!.notes)}>
-              <Music2 size={18} /> <span class="text-[10px] md:text-sm uppercase font-black">Referencia</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 2. CARD DEL PIANO Y ACCIONES INTEGRADAS */}
-        <div class="card bg-base-100 shadow-xl border border-base-content/5 overflow-visible">
-          <div class="card-body p-3 md:p-6 space-y-4">
-            
-            <PianoInput onNoteClick={handleNoteInput} selectedNotes={sortedUserNotes()} mode={spellingMode()} />
-
-            {/* BARRA DE ACCIONES ÚNICA Y COMPACTA */}
-            <div class="flex items-center gap-2 w-full h-12 md:h-16 mt-2">
-              
-              {/* BOTÓN DESHACER */}
-              <button 
-                class="btn btn-ghost border border-base-content/10 w-12 md:w-16 h-full p-0 min-h-0 flex items-center justify-center hover:bg-warning/10 transition-colors"
-                onClick={undoLastNote}
-                disabled={!!feedback() || userNotes().length === 0}
-                title="Deshacer"
+            {/* AUDIO */}
+            <div class="grid grid-cols-2 border-t border-base-content/10 bg-base-200/30">
+              <button
+                class="
+                  btn
+                  btn-ghost
+                  rounded-none
+                  border-r border-base-content/5
+                  gap-2
+                  h-9 sm:h-12
+                  py-1
+                "
+                onClick={() => audioEngine.play(sortedUserNotes())}
+                disabled={userNotes().length === 0}
               >
-                <Undo2 size={22} class="opacity-70" />
+                <Play size={16} class="fill-current" />
+                <span class="text-[10px] sm:text-xs uppercase font-black leading-none">
+                  Mi Acorde
+                </span>
               </button>
 
-              {/* SELECTOR DE ENARMONÍA */}
-              <div class="join border border-base-content/10 bg-base-200/50 h-full">
-                <button class={`join-item btn btn-ghost btn-sm md:btn-md h-full px-2 md:px-6 text-[10px] md:text-xs font-black uppercase ${spellingMode() === 'mixed' ? 'bg-primary text-white' : 'opacity-40'}`} onClick={() => setSpellingMode('mixed')}>Nat</button>
-                <button class={`join-item btn btn-ghost btn-sm md:btn-md h-full px-3 md:px-8 font-bold ${spellingMode() === 'sharp' ? 'bg-primary text-white' : 'opacity-40'}`} onClick={() => setSpellingMode('sharp')}>#</button>
-                <button class={`join-item btn btn-ghost btn-sm md:btn-md h-full px-3 md:px-8 font-bold ${spellingMode() === 'flat' ? 'bg-primary text-white' : 'opacity-40'}`} onClick={() => setSpellingMode('flat')}>♭</button>
-              </div>
+              <button
+                class="
+                  btn
+                  btn-ghost
+                  rounded-none
+                  gap-2
+                  h-9 sm:h-12
+                  py-1
+                "
+                onClick={() =>
+                  challenge() && audioEngine.arpeggiate(challenge()!.notes)
+                }
+              >
+                <Music2 size={16} />
+                <span class="text-[10px] sm:text-xs uppercase font-black leading-none">
+                  Referencia
+                </span>
+              </button>
+            </div>
+          </div>
 
-              {/* BOTÓN PRINCIPAL */}
-              <div class="flex-1 h-full">
-                <Show when={!feedback()} fallback={
-                  <button class="btn btn-neutral h-full w-full gap-2 shadow-lg font-black uppercase text-xs md:text-base animate-in zoom-in border-none" onClick={handleNext}>
-                    {isLastExercise() ? t("config.finish" as any) : t("common.next" as any)}
-                    <ChevronDown size={20} class={isLastExercise() ? "" : "-rotate-90"} />
-                  </button>
-                }>
-                  <button 
-                    class="btn btn-primary h-full w-full shadow-lg font-black uppercase tracking-widest text-xs md:text-base gap-2 border-none"
-                    disabled={userNotes().length === 0}
-                    onClick={checkAnswer}
-                  >
-                    <Send size={18} /> 
-                    <span class="hidden xs:inline">{t('game.submit' as any) || 'COMPROBAR'}</span>
-                  </button>
-                </Show>
-              </div>
+          {/* ================= DERECHA: CONTROL ================= */}
+          <div class="flex flex-col gap-4 min-h-0">
+            <div class="card bg-base-100 shadow-xl border border-base-content/5 overflow-hidden flex-grow">
+              <div class="card-body p-3 sm:p-4 md:p-6 flex flex-col h-full gap-6">
+                <div class="flex-grow overflow-x-auto overscroll-x-contain">
+                  {/* <h3 class="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest">
+                    Teclado de Construcción
+                  </h3> */}
+                  <PianoInput
+                    onNoteClick={handleNoteInput}
+                    selectedNotes={userNotes()}
+                    mode={spellingMode()}
+                  />
+                </div>
 
+                {/* ACCIONES */}
+                <div class="flex items-center gap-2 w-full h-11 sm:h-12 mt-auto">
+
+  {/* Undo */}
+  <button
+    class="
+      btn btn-ghost
+      border border-base-content/10
+      w-11 sm:w-14
+      h-full
+      p-0
+      flex items-center justify-center
+      hover:bg-warning/10
+    "
+    onClick={undoLastNote}
+    disabled={!!feedback() || userNotes().length === 0}
+  >
+    <Undo2 size={18} class="opacity-70" />
+  </button>
+
+  {/* Spelling mode */}
+  <div class="join border border-base-content/10 bg-base-200/50 h-full">
+    <button
+      class={`join-item btn btn-ghost h-full px-2 py-1 text-[10px] font-black uppercase leading-none ${
+        spellingMode() === "mixed"
+          ? "bg-primary text-white"
+          : "opacity-40"
+      }`}
+      onClick={() => setSpellingMode("mixed")}
+    >
+      Nat
+    </button>
+
+    <button
+      class={`join-item btn btn-ghost h-full px-3 py-1 text-base font-bold leading-none ${
+        spellingMode() === "sharp"
+          ? "bg-primary text-white"
+          : "opacity-40"
+      }`}
+      onClick={() => setSpellingMode("sharp")}
+    >
+      ♯
+    </button>
+
+    <button
+      class={`join-item btn btn-ghost h-full px-3 py-1 text-base font-bold leading-none ${
+        spellingMode() === "flat"
+          ? "bg-primary text-white"
+          : "opacity-40"
+      }`}
+      onClick={() => setSpellingMode("flat")}
+    >
+      ♭
+    </button>
+  </div>
+
+  {/* Acción principal */}
+  <div class="flex-1 h-full">
+    <Show
+      when={!feedback()}
+      fallback={
+        <button
+          class="
+            btn btn-neutral
+            h-full w-full
+            gap-2
+            shadow-lg
+            font-black uppercase
+            text-xs
+            py-1
+            animate-in zoom-in
+            border-none
+          "
+          onClick={handleNext}
+        >
+          {isLastExercise()
+            ? t("config.finish" as any)
+            : t("common.next" as any)}
+          <ChevronDown
+            size={16}
+            class={isLastExercise() ? "" : "-rotate-90"}
+          />
+        </button>
+      }
+    >
+      <button
+        class="
+          btn btn-primary
+          h-full w-full
+          shadow-lg
+          font-black uppercase
+          tracking-widest
+          text-xs
+          py-1
+          gap-2
+          border-none
+        "
+        disabled={userNotes().length === 0}
+        onClick={checkAnswer}
+      >
+        <Send size={16} />
+        <span class="hidden xl:inline leading-none">
+          COMPROBAR
+        </span>
+      </button>
+    </Show>
+  </div>
+</div>
+
+              </div>
+            </div>
+
+            {/* TIP DESKTOP */}
+            <div class="hidden lg:flex card bg-primary/5 border border-primary/10 p-4 items-center gap-3">
+              <Music size={16} class="text-primary opacity-50" />
+              <p class="text-[10px] font-serif italic opacity-50">
+                Pulsa la tecla una vez para añadirla, y otra vez para
+                eliminarla.
+              </p>
             </div>
           </div>
         </div>
-
       </div>
     </Show>
   );

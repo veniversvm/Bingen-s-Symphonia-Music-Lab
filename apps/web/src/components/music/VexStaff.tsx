@@ -3,44 +3,62 @@ import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, Annotation } 
 
 interface VexStaffProps {
   notes: string[];
-  targetNotes?: string[]; // Notas correctas para comparar (opcional)
+  targetNotes?: string[];
   clef?: string;
-  width?: number;
 }
 
 export const VexStaff = (props: VexStaffProps) => {
   let containerRef: HTMLDivElement | undefined;
-  const [containerWidth, setContainerWidth] = createSignal(300);
-
-  const handleResize = () => {
-    if (containerRef) setContainerWidth(containerRef.getBoundingClientRect().width);
-  };
+  const [themeTick, setThemeTick] = createSignal(0);
 
   onMount(() => {
-    handleResize();
-    window.addEventListener('resize', handleResize);
+    const observer = new MutationObserver(() => setThemeTick(t => t + 1));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+    onCleanup(() => observer.disconnect());
   });
-  onCleanup(() => window.removeEventListener('resize', handleResize));
 
   const renderStaff = (userNotes: string[], targetNotes?: string[]) => {
     if (!containerRef) return;
     containerRef.innerHTML = '';
-
-    const width = containerWidth();
-    const renderer = new Renderer(containerRef, Renderer.Backends.SVG);
-    renderer.resize(width, 180);
-    const context = renderer.getContext();
-    context.setFont("Arial", 10);
-    context.setFillStyle("var(--color-staff)");
-    context.setStrokeStyle("var(--color-staff)");
-
+  
     const hasComparison = targetNotes && targetNotes.length > 0;
-    const staveWidth = hasComparison ? (width / 2) - 10 : width - 20;
-
-    // --- COMPÁS 1: USUARIO ---
-    const stave1 = new Stave(10, 40, staveWidth);
-    stave1.addClef(props.clef || 'treble').setContext(context).draw();
     
+    // --- EL TRUCO ESTÁ AQUÍ ---
+    // Reducimos el ancho lógico de 500 a 350. 
+    // Al ser el "lienzo" más pequeño, el "viewBox" estirará el dibujo 
+    // para que encaje en el div, haciendo que se vea mucho más grande.
+    const logicWidth = hasComparison ? 400 : 250; 
+    const logicHeight = 120; // Altura ajustada para que no sobre espacio arriba/abajo
+  
+    const renderer = new Renderer(containerRef, Renderer.Backends.SVG);
+    const svgElement = containerRef.querySelector('svg');
+    if (svgElement) {
+      // El viewBox ahora es más "apretado", lo que causa el efecto de zoom
+      svgElement.setAttribute('viewBox', `0 0 ${logicWidth} ${logicHeight}`);
+      svgElement.setAttribute('width', '100%');
+      svgElement.setAttribute('height', '100%');
+      // Mantiene la proporción pero llena el espacio
+      svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    }
+  
+    const context = renderer.getContext();
+    const lightColor = getComputedStyle(document.documentElement)
+      .getPropertyValue('--color-piano-white').trim() || "#fdfcf0";
+  
+    context.setFillStyle(lightColor);
+    context.setStrokeStyle(lightColor);
+  
+    // --- COMPÁS 1 ---
+    // Quitamos margen de la izquierda (de 10 a 5) para ganar espacio
+    const firstMeasureWidth = hasComparison ? 190 : 240;
+    const stave1 = new Stave(5, 10, firstMeasureWidth);
+    
+    stave1.setStyle({ strokeStyle: lightColor, fillStyle: lightColor });
+    stave1.addClef(props.clef || 'treble').setContext(context).draw();
+  
     if (userNotes.length > 0) {
       const userKeys = userNotes.map(n => `${n.slice(0, -1).toLowerCase()}/${n.slice(-1)}`);
       const userNote = new StaveNote({ keys: userKeys, duration: "w" });
@@ -49,21 +67,23 @@ export const VexStaff = (props: VexStaffProps) => {
         const acc = n.match(/([b#]+)/)?.[1];
         if (acc) userNote.addModifier(new Accidental(acc), i);
       });
-
-      userNote.addModifier(new Annotation(hasComparison ? "TUYO" : "").setVerticalJustification(Annotation.VerticalJustify.TOP), 0);
-      userNote.setStyle({ fillStyle: "var(--primary)", strokeStyle: "var(--primary)" });
-
+  
+      userNote.addModifier(new Annotation("TUYO").setVerticalJustification(Annotation.VerticalJustify.TOP), 0);
+      userNote.setStyle({ fillStyle: lightColor, strokeStyle: lightColor });
+  
       const voice1 = new Voice({ numBeats: 4, beatValue: 4 });
       voice1.addTickables([userNote]);
-      new Formatter().joinVoices([voice1]).format([voice1], staveWidth - 50);
+      // Formateo más compacto para que la nota esté centrada
+      new Formatter().joinVoices([voice1]).format([voice1], firstMeasureWidth - 60);
       voice1.draw(context, stave1);
     }
-
-    // --- COMPÁS 2: CORRECTO (Solo si existe targetNotes) ---
+  
+    // --- COMPÁS 2 ---
     if (hasComparison) {
-      const stave2 = new Stave(stave1.getWidth() + 10, 40, staveWidth);
+      const stave2 = new Stave(stave1.getX() + stave1.getWidth(), 10, 190);
+      stave2.setStyle({ strokeStyle: lightColor, fillStyle: lightColor });
       stave2.setContext(context).draw();
-
+  
       const targetKeys = targetNotes.map(n => `${n.slice(0, -1).toLowerCase()}/${n.slice(-1)}`);
       const targetNote = new StaveNote({ keys: targetKeys, duration: "w" });
       
@@ -71,18 +91,26 @@ export const VexStaff = (props: VexStaffProps) => {
         const acc = n.match(/([b#]+)/)?.[1];
         if (acc) targetNote.addModifier(new Accidental(acc), i);
       });
-
-      targetNote.addModifier(new Annotation("CORRECTO").setVerticalJustification(Annotation.VerticalJustify.TOP), 0);
-      targetNote.setStyle({ fillStyle: "#06D6A0", strokeStyle: "#06D6A0" }); // Verde esmeralda para el éxito
-
+  
+      targetNote.addModifier(new Annotation("OK").setVerticalJustification(Annotation.VerticalJustify.TOP), 0);
+      targetNote.setStyle({ fillStyle: "#10b981", strokeStyle: "#10b981" });
+  
       const voice2 = new Voice({ numBeats: 4, beatValue: 4 });
       voice2.addTickables([targetNote]);
-      new Formatter().joinVoices([voice2]).format([voice2], staveWidth - 50);
+      new Formatter().joinVoices([voice2]).format([voice2], 130);
       voice2.draw(context, stave2);
     }
   };
 
-  createEffect(() => renderStaff(props.notes, props.targetNotes));
+  createEffect(() => {
+    themeTick(); 
+    renderStaff(props.notes, props.targetNotes);
+  });
 
-  return <div ref={containerRef} class="w-full h-full flex items-center justify-center overflow-hidden" />;
+  return (
+    <div 
+      ref={containerRef} 
+      class="w-full h-full flex items-center justify-center overflow-hidden" 
+    />
+  );
 };

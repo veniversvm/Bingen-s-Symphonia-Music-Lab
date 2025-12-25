@@ -1,6 +1,8 @@
-import { For, onMount, createSignal } from 'solid-js';
+// apps/web/src/components/music/PianoInput.tsx
+import { For } from "solid-js";
+import { NoteUtils } from "@bingens/core";
 
-export type SpellingMode = 'mixed' | 'sharp' | 'flat';
+export type SpellingMode = "mixed" | "sharp" | "flat";
 
 interface Props {
   onNoteClick: (note: string) => void;
@@ -9,104 +11,117 @@ interface Props {
 }
 
 export const PianoInput = (props: Props) => {
-  const range = Array.from({ length: 96 - 48 + 1 }, (_, i) => i + 48); // Do 3 a Do 7
+  // --- NUEVO RANGO: A3 (57) a A5 (81) ---
+  const START_MIDI = 57; 
+  const END_MIDI = 81;
+  const range = Array.from(
+    { length: END_MIDI - START_MIDI + 1 }, 
+    (_, i) => i + START_MIDI
+  );
+
   let scrollContainer: HTMLDivElement | undefined;
-  const [scrollPos, setScrollPos] = createSignal(0);
 
-  // Helper visual para mostrar glifos reales ♯ y ♭
-  const beautify = (pc: string) => {
-    return pc.replace('#', '♯').replace('b', '♭');
+  const beautify = (name: string) => {
+    return name
+      .replace("##", "𝄪")
+      .replace("#", "♯")
+      .replace("bb", "𝄫")
+      .replace("b", "♭");
   };
-
-  const handleScroll = () => {
-    if (!scrollContainer) return;
-    const max = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-    if (max > 0) setScrollPos((scrollContainer.scrollLeft / max) * 100);
-  };
-
-  const onSliderInput = (e: any) => {
-    if (!scrollContainer) return;
-    const val = parseFloat(e.target.value);
-    const max = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-    scrollContainer.scrollLeft = (val / 100) * max;
-  };
-
-  onMount(() => {
-    if (scrollContainer) {
-      scrollContainer.scrollLeft = scrollContainer.scrollWidth * 0.3;
-    }
-  });
 
   const getNoteName = (midi: number, mode: SpellingMode) => {
     const pc = midi % 12;
     const oct = Math.floor(midi / 12) - 1;
+
     const map: any = {
-      0: {mixed:"C", sharp:"C", flat:"C"}, 1: {mixed:"C#", sharp:"C#", flat:"Db"},
-      2: {mixed:"D", sharp:"D", flat:"D"}, 3: {mixed:"Eb", sharp:"D#", flat:"Eb"},
-      4: {mixed:"E", sharp:"E", flat:"E"}, 5: {mixed:"F", sharp:"F", flat:"F"},
-      6: {mixed:"F#", sharp:"F#", flat:"Gb"}, 7: {mixed:"G", sharp:"G", flat:"G"},
-      8: {mixed:"Ab", sharp:"G#", flat:"Ab"}, 9: {mixed:"A", sharp:"A", flat:"A"},
-      10: {mixed:"Bb", sharp:"A#", flat:"Bb"}, 11: {mixed:"B", sharp:"B", flat:"B"}
+      0: { mixed: "C", sharp: "B#", flat: "Dbb" },
+      1: { mixed: "C#", sharp: "C#", flat: "Db" },
+      2: { mixed: "D", sharp: "Cx", flat: "Ebb" },
+      3: { mixed: "Eb", sharp: "D#", flat: "Eb" },
+      4: { mixed: "E", sharp: "Dx", flat: "Fb" },
+      5: { mixed: "F", sharp: "E#", flat: "Gbb" },
+      6: { mixed: "F#", sharp: "F#", flat: "Gb" },
+      7: { mixed: "G", sharp: "Fx", flat: "Abb" },
+      8: { mixed: "Ab", sharp: "G#", flat: "Ab" },
+      9: { mixed: "A", sharp: "Gx", flat: "Bbb" },
+      10: { mixed: "Bb", sharp: "A#", flat: "Bb" },
+      11: { mixed: "B", sharp: "Ax", flat: "Cb" },
     };
+
     let name = map[pc][mode];
-    if (mode === 'sharp') {
-      if (pc === 5) name = "E#"; if (pc === 0) name = "B#";
-    } else if (mode === 'flat') {
-      if (pc === 4) name = "Fb"; if (pc === 11) name = "Cb";
-    }
-    const finalOct = (mode === 'sharp' && pc === 0) ? oct - 1 : (mode === 'flat' && pc === 11) ? oct + 1 : oct;
+    name = name.replace("x", "##");
+
+    let finalOct = oct;
+    if (mode === "sharp" && pc === 0) finalOct = oct - 1;
+    if (mode === "flat" && pc === 11) finalOct = oct + 1;
+
     return `${name}${finalOct}`;
   };
 
   return (
-    <div class="w-full bg-base-300 p-2 rounded-2xl shadow-inner border border-base-content/10 flex flex-col gap-2">
-      <div 
-        ref={scrollContainer}
-        onScroll={handleScroll}
-        class="w-full overflow-x-auto no-scrollbar rounded-xl bg-black/20"
-      >
-        <div class="flex min-w-max h-48 md:h-64 relative pb-4 px-10">
-          <For each={range}>{(midi) => {
-            const name = () => getNoteName(midi, props.mode);
-            const isBlack = [1, 3, 6, 8, 10].includes(midi % 12);
-            const isSelected = () => props.selectedNotes.includes(name());
-            
-            // Aplicamos beautify aquí para los glifos ♯ y ♭
-            const pcDisplay = () => beautify(name().replace(/\d/g, ''));
+    <div class="w-full bg-base-300 p-2 sm:p-3 rounded-2xl shadow-inner border border-base-content/10 flex flex-col gap-1">
+      <div class="flex justify-between px-2 text-base-content/60 text-[9px] font-black uppercase tracking-widest">
+        <span>A3 (Grave)</span>
+        <span class="animate-pulse hidden sm:inline">Piano Interactivo</span>
+        <span>A5 (Agudo)</span>
+      </div>
 
-            return (
-              <div 
-                onPointerDown={(e) => { 
-                  e.preventDefault(); 
-                  props.onNoteClick(name()); 
-                }}
-                class={`relative flex-1 cursor-pointer transition-all border-x border-black/5 flex flex-col items-center
-                  ${isBlack 
-                    ? 'bg-neutral h-[62%] w-10 md:w-12 -mx-5 md:-mx-6 z-10 rounded-b-md shadow-lg justify-start pt-4' 
-                    : 'bg-white h-full w-14 md:w-18 rounded-b-xl shadow-md justify-end pb-8'
+      <div
+        ref={scrollContainer}
+        class="w-full overflow-x-auto overscroll-x-contain no-scrollbar rounded-xl bg-black/20 shadow-inner"
+      >
+        <div class="flex min-w-max relative px-4 sm:px-6 pb-2 h-[clamp(8rem,20vh,12rem)]">
+          <For each={range}>
+            {(midi) => {
+              const name = () => getNoteName(midi, props.mode);
+              const isBlack = [1, 3, 6, 8, 10].includes(midi % 12);
+              const isSelected = () =>
+                props.selectedNotes.some((n) => NoteUtils.midi(n) === midi);
+              const pcOnly = () => name().replace(/\d/g, "");
+
+              return (
+                <div
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    props.onNoteClick(name());
+                  }}
+                  class={`
+                  relative cursor-pointer transition-all border-x border-black/5 flex flex-col items-center select-none
+                  ${isBlack
+                      ? `bg-neutral h-[60%] w-[clamp(1.2rem,2vw,2.2rem)] -mx-[clamp(0.6rem,1vw,1.1rem)] z-10 rounded-b-sm shadow-2xl justify-start pt-2 sm:pt-4`
+                      : `bg-white h-full w-[clamp(2.2rem,4vw,3.5rem)] rounded-b-lg shadow-md justify-end pb-4 sm:pb-6`
                   }
-                  ${isSelected() ? '!bg-primary ring-2 ring-primary/40' : ''}
+                  ${isSelected() ? "!bg-primary ring-2 ring-primary/30" : ""}
                 `}
-              >
-                {/* Quitamos 'uppercase' para permitir que el glifo o la 'b' se vean bien */}
-                <span class={`font-black pointer-events-none transition-all
-                  ${isBlack 
-                    ? 'text-[10px] md:text-xs ' + (isSelected() ? 'text-white' : 'text-white/40')
-                    : 'text-sm md:text-lg ' + (isSelected() ? 'text-white scale-125' : 'text-black/40')
-                  }
-                `}>
-                  {pcDisplay()}
-                </span>
-              </div>
-            );
-          }}</For>
+                >
+                  <span class={`font-black pointer-events-none
+                    ${isBlack
+                        ? `text-[9px] sm:text-[10px] ${isSelected() ? "text-white" : "text-white/40"}`
+                        : `text-xs sm:text-sm ${isSelected() ? "text-white scale-110" : "text-black/40"}`
+                    }
+                  `}>
+                    {beautify(pcOnly())}
+                  </span>
+                </div>
+              );
+            }}
+          </For>
         </div>
       </div>
 
-      <div class="px-4 pb-2 flex items-center gap-3">
-        <span class="text-[9px] font-black opacity-30 uppercase text-base-content">Grave</span>
-        <input type="range" min="0" max="100" step="0.1" value={scrollPos()} onInput={onSliderInput} class="range range-xs range-primary opacity-50 hover:opacity-100" />
-        <span class="text-[9px] font-black opacity-30 uppercase text-base-content">Agudo</span>
+      {/* Solo mostrar el slider si el contenido desborda (opcional) */}
+      <div class="px-4 sm:px-6 py-0">
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="0.1"
+          class="range range-primary range-xs h-2 opacity-20 hover:opacity-100 transition-opacity"
+          onInput={(e) => {
+            const max = scrollContainer!.scrollWidth - scrollContainer!.clientWidth;
+            scrollContainer!.scrollLeft = (parseFloat(e.currentTarget.value) / 100) * max;
+          }}
+        />
       </div>
     </div>
   );
