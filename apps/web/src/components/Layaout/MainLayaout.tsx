@@ -1,98 +1,103 @@
-import { type ParentComponent } from "solid-js";
-import { A, useLocation } from "@solidjs/router";
-import { Music, BookOpen, User, Languages } from "lucide-solid";
-import { useI18n, setLanguage, currentLang } from "../../i18n"; // Importar i18n
+import { createSignal, createEffect, type ParentComponent, For } from "solid-js";
+import { A } from "@solidjs/router";
+import { Music, BookOpen, User, Languages, Sun, Moon, Menu, ChevronLeft, ChevronRight } from "lucide-solid";
+import { useI18n, setLanguage, currentLang } from "../../i18n";
 
 export const MainLayout: ParentComponent = (props) => {
-  const [t] = useI18n(); // Hook de traducción
+  const [t] = useI18n();
+  const [theme, setTheme] = createSignal(localStorage.getItem("theme") || "dark");
+  const [isCollapsed, setIsCollapsed] = createSignal(false);
 
-  const toggleLang = () => {
-    setLanguage(currentLang() === "es" ? "en" : "es");
-  };
+  createEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme());
+    localStorage.setItem("theme", theme());
+  });
+
+  const navLinks = () => [
+    { href: "/exercises", label: t("nav.practice"), icon: Music },
+    { href: "/theory", label: t("nav.theory"), icon: BookOpen },
+    { href: "/profile", label: t("nav.profile"), icon: User },
+  ];
 
   return (
-    <div class="flex flex-col min-h-screen bg-base-200 transition-colors duration-300">
-      {/* 1. TOP HEADER (Adaptive) */}
-      <header class="navbar bg-base-100 shadow-sm z-20 sticky top-0 px-4">
-        <div class="flex-1 min-w-0">
-          <A
-            href="/"
-            class="font-serif font-bold text-primary tracking-wide hover:opacity-80 transition-all active:scale-95 no-underline whitespace-nowrap overflow-hidden text-ellipsis block text-base sm:text-lg md:text-xl"
+    <div class="drawer md:drawer-open">
+      <input id="my-drawer" type="checkbox" class="drawer-toggle" />
+      
+      <div class="drawer-content flex flex-col bg-base-200 min-h-screen">
+        <header class="navbar bg-base-100 border-b border-base-content/5 md:hidden sticky top-0 z-10">
+          <div class="flex-none">
+            <label for="my-drawer" class="btn btn-ghost drawer-button">
+              <Menu size={24} />
+            </label>
+          </div>
+          <div class="flex-1 px-2 font-serif font-black text-primary uppercase tracking-tighter">B's Symphonia</div>
+        </header>
+
+        <main class="p-4 md:p-10 max-w-5xl w-full mx-auto">
+          {props.children}
+        </main>
+      </div> 
+
+      <div class="drawer-side z-20">
+        <label for="my-drawer" class="drawer-overlay"></label>
+        
+        {/* CORRECCIÓN: Un solo atributo 'class' combinado */}
+        <aside 
+          class={`bg-base-100 min-h-full flex flex-col border-r border-base-content/10 transition-all duration-300 ease-in-out relative ${
+            isCollapsed() ? "w-20 p-4" : "w-72 p-6"
+          }`}
+        >
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed())}
+            class="hidden md:flex btn btn-circle btn-xs absolute -right-3 top-10 z-30 border border-base-content/10 bg-base-100 hover:bg-primary hover:text-primary-content transition-transform active:scale-90"
           >
-            {t("common.appName")}
-          </A>
-        </div>
-                {/* DESKTOP NAV (Oculto en móvil 'hidden', visible en md 'md:flex') */}
-        <div class="hidden md:flex flex-none gap-2 mr-4">
-          <DesktopNavLink href="/exercises" label={t("nav.practice")} />
-          <DesktopNavLink href="/theory" label={t("nav.theory")} />
-          <DesktopNavLink href="/profile" label={t("nav.profile")} />
-        </div>
-
-        {/* SETTINGS AREA */}
-        <div class="flex-none gap-2">
-          {/* Botón Idioma */}
-          <button class="btn btn-ghost btn-circle btn-sm" onClick={toggleLang}>
-            <Languages size={20} />
-            <span class="text-xs font-bold uppercase">{currentLang()}</span>
+            {isCollapsed() ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
-        </div>
-      </header>
 
-      {/* 2. MAIN CONTENT */}
-      {/* pb-24 asegura que el contenido no quede tapado por la barra inferior en móvil */}
-      <main class="flex-grow p-4 pb-24 md:pb-4 max-w-5xl w-full mx-auto animate-fade-in">
-        {props.children}
-      </main>
+          <div class="mb-10 px-2 overflow-hidden whitespace-nowrap">
+            <A href="/" class="font-serif font-black text-primary leading-tight no-underline block">
+              <span class="text-2xl">B</span>
+              {!isCollapsed() && <span>ingen's<br/><span class="text-secondary italic">Symphonia</span></span>}
+            </A>
+          </div>
 
-      {/* 3. BOTTOM NAVIGATION (Mobile Only) */}
-      {/* Visible en móvil, oculto en md ('md:hidden') */}
-      <nav class="btm-nav btm-nav-md bg-base-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-20 md:hidden">
-        <MobileNavButton
-          href="/exercises"
-          icon={Music}
-          label={t("nav.practice")}
-        />
-        <MobileNavButton
-          href="/theory"
-          icon={BookOpen}
-          label={t("nav.theory")}
-        />
-        <MobileNavButton href="/profile" icon={User} label={t("nav.profile")} />
-      </nav>
+          <nav class="flex-grow">
+            <ul class="menu p-0 gap-3">
+              <For each={navLinks()}>{(item) => (
+                <li>
+                  <A href={item.href} 
+                     class={`flex gap-4 p-4 rounded-2xl font-bold transition-all items-center ${isCollapsed() ? "justify-center" : ""}`}
+                     activeClass="bg-primary text-primary-content shadow-lg shadow-primary/20"
+                     onClick={() => {
+                        if (window.innerWidth < 768) {
+                          (document.getElementById("my-drawer") as HTMLInputElement).checked = false;
+                        }
+                     }}
+                  >
+                    <item.icon size={22} class="shrink-0" />
+                    {!isCollapsed() && <span class="text-lg overflow-hidden text-ellipsis whitespace-nowrap">{item.label as string}</span>}
+                  </A>
+                </li>
+              )}</For>
+            </ul>
+          </nav>
+
+          {/* CORRECCIÓN: Un solo atributo 'class' combinado en el footer */}
+          <div 
+            class={`flex bg-base-200/50 rounded-2xl border border-base-content/5 mt-auto transition-all ${
+              isCollapsed() ? "flex-col items-center gap-2 p-2" : "flex-row justify-between p-2"
+            }`}
+          >
+            <button class="btn btn-ghost btn-circle btn-sm" onClick={() => setTheme(theme() === "light" ? "dark" : "light")}>
+              {theme() === "light" ? <Moon size={18} /> : <Sun size={18} class="text-yellow-400" />}
+            </button>
+            <button class="btn btn-ghost btn-sm gap-2 font-bold" onClick={() => setLanguage(currentLang() === "es" ? "en" : "es")}>
+              <Languages size={18} />
+              {!isCollapsed() && <span class="uppercase text-xs">{currentLang()}</span>}
+            </button>
+          </div>
+        </aside>
+      </div>
     </div>
-  );
-};
-
-// Componente Auxiliar para Móvil
-const MobileNavButton = (props: { href: string; icon: any; label: string }) => {
-  const location = useLocation();
-  const isActive = () =>
-    location.pathname.startsWith(props.href) ||
-    (props.href === "/exercises" && location.pathname === "/");
-
-  return (
-    <A
-      href={props.href}
-      class={`${isActive() ? "active text-primary bg-primary/10" : "text-base-content/60"} transition-all`}
-    >
-      <props.icon size={24} />
-      <span class="text-xs font-semibold">{props.label}</span>
-    </A>
-  );
-};
-
-// Componente Auxiliar para Desktop
-const DesktopNavLink = (props: { href: string; label: string }) => {
-  const location = useLocation();
-  const isActive = () => location.pathname.startsWith(props.href);
-
-  return (
-    <A
-      href={props.href}
-      class={`btn btn-sm btn-ghost ${isActive() ? "text-primary bg-base-200" : ""}`}
-    >
-      {props.label}
-    </A>
   );
 };
