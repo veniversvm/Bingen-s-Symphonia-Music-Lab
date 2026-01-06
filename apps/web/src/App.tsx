@@ -15,6 +15,7 @@ const ChordDictation = lazy(
   () => import("./features/excercises/ChordDictation/ChordDictation")
 );
 const ChordConstruction = lazy(() => import('./features/excercises/ChordConstruction/ChordConstruction'));
+const NoteRecognition = lazy(() => import('./features/excercises/NoteRecognition/NoteRecognitionGame'));
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
           />{" "}
           {/* ACTUALIZADO */}
           <Route path="/chord-dictation" component={ChordDictation} />
+          <Route path="/note-recognition" component={NoteRecognition} />
         </Route>
 
         <Route path="/theory" component={TheoryPage} />

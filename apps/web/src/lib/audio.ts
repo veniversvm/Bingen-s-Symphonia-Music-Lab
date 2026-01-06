@@ -1,5 +1,6 @@
 import * as Soundfont from 'soundfont-player';
-
+import { globalVolume } from '../store/audioStore'; // Importar el signal
+import { createEffect } from 'solid-js';
 
 // Nombres oficiales de General MIDI
 export type InstrumentName =
@@ -14,6 +15,7 @@ class AudioEngine {
   private currentInstrument: Soundfont.Player | null = null;
   private currentName: InstrumentName = "acoustic_grand_piano";
   private isLoading = false;
+  private masterGain: GainNode;
 
   constructor() {
     // Inicializamos el contexto de audio del navegador
@@ -23,6 +25,18 @@ class AudioEngine {
 
     // Cargar piano por defecto
     //this.setInstrument("acoustic_grand_piano");
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.connect(this.ctx.destination);
+    
+    // 2. Establecer volumen inicial
+    this.masterGain.gain.value = globalVolume();
+
+    // 3. REACTIVIDAD: Cuando el signal global cambie, el audio cambia al instante
+    createEffect(() => {
+      const vol = globalVolume();
+      // Usamos setTargetAtTime para evitar "clicks" al mover el slider
+      this.masterGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.05);
+    });
   }
 
   public async setInstrument(name: InstrumentName) {
@@ -35,7 +49,9 @@ class AudioEngine {
         // Optimizacion: Si el contexto está suspendido (regla de Chrome), lo reanudamos al cargar
         if (this.ctx.state === 'suspended') await this.ctx.resume();
   
-        this.currentInstrument = await Soundfont.instrument(this.ctx, name);
+        this.currentInstrument = await Soundfont.instrument(this.ctx, name, {
+          destination: this.masterGain // <--- IMPORTANTE
+        });
       } catch (e) {
         console.error("Error cargando instrumento MIDI:", e);
       } finally {
