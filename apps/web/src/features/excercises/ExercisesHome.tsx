@@ -73,7 +73,7 @@ export default function ExercisesHome() {
         </div>
 
         {/* TARJETA 4: DICTADO MELÓDICO (ACTIVO) */}
-        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-warning group">
+        {/* <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-warning group">
           <div class="card-body">
             <h3 class="card-title font-serif text-xl group-hover:text-warning transition-colors">
               {t('home.melodicDictation' as any) || "Dictado Melódico"}
@@ -87,7 +87,7 @@ export default function ExercisesHome() {
               </A>
             </div>
           </div>
-        </div>
+        </div> */}
 
       </div>
     </div>
