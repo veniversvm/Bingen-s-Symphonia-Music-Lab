@@ -5,7 +5,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 
 export default defineConfig({
-  base: '/Bingen-s-Symphonia-Music-Lab/',
+  // base: '/Bingen-s-Symphonia-Music-Lab/',
   plugins: [
     solidPlugin(),
     tailwindcss(),
