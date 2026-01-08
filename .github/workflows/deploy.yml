@@ -1,22 +1,28 @@
-name: Deploy Demo to GitHub Pages
+name: Deploy BSML Demo
 
 on:
   push:
     branches: [ main ]
+  workflow_dispatch: # Permite disparar el despliegue manualmente desde la web
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Solo permite un despliegue a la vez. Si hay uno en curso, lo cancela y prioriza el nuevo.
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -31,15 +37,20 @@ jobs:
       - name: Build Web App
         run: yarn workspace web build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
+      # ESTE PASO SOLO DEBE APARECER UNA VEZ
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Subimos la carpeta dist que generó el build de la web
           path: './apps/web/dist'
 
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      # ESTE PASO SOLO DEBE APARECER UNA VEZ
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
