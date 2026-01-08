@@ -11,6 +11,8 @@ export const dict = {
       inputButtons: "Usar Botones",
       correct: "¡Correcto!",
       wrong: "Inténtalo de nuevo",
-      unlocked: "¡Nueva nota desbloqueada!"
+      unlocked: "¡Nueva nota desbloqueada!",
+      mastery: "MAESTRÍA (Multitimbre)",
+      repeat: "Oír de nuevo",
     }
   };
