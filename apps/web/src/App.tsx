@@ -7,6 +7,7 @@ const MainPage = lazy(() => import("./pages/MainPage"));
 const ExercisesPage = lazy(() => import("./pages/ExercisesPage"));
 const TheoryPage = lazy(() => import("./pages/TheoryPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const AboutUsPage = lazy(() => import("./pages/AboutPage"))
 
 // Features
 const ExercisesList = lazy(() => import("./features/excercises/ExercisesHome"));
@@ -15,8 +16,10 @@ const ChordConstruction = lazy(() => import('./features/excercises/ChordConstruc
 const NoteRecognition = lazy(() => import('./features/excercises/NoteRecognition/NoteRecognition'));
 
 function App() {
+  const basePath = import.meta.env.VITE_BASE_PATH || "/";
+
   return (
-    <Router root={MainLayout}>
+    <Router base={basePath} root={MainLayout}>
       <Suspense
         fallback={
           <div class="flex h-screen items-center justify-center bg-base-200 text-primary font-serif animate-pulse">
@@ -25,6 +28,7 @@ function App() {
         }
       >
         <Route path="/" component={MainPage} />
+        <Route path="about" component={AboutUsPage} />
 
         <Route path="/exercises" component={ExercisesPage}>
           <Route path="/" component={ExercisesList} />
