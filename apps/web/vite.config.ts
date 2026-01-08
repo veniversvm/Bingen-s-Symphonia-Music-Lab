@@ -7,7 +7,7 @@ import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 export default defineConfig(({ mode }) => {
   // Cargar variables de entorno según el modo actual
   // El tercer parámetro '' carga todas las variables sin importar el prefijo
-  const env = loadEnv(mode, process.cwd(), "");
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
 
   return {
     // Usamos la variable de entorno, si no existe usamos '/'
