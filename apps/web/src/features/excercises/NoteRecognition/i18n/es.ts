@@ -14,5 +14,6 @@ export const dict = {
       unlocked: "¡Nueva nota desbloqueada!",
       mastery: "MAESTRÍA (Multitimbre)",
       repeat: "Oír de nuevo",
+      inputButtonsDesc: "Cuidado con la enarmonía (♯/♭)",
     }
   };
