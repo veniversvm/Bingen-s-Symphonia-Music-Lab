@@ -16,7 +16,7 @@ export const en = {
     title: "Practice Room",
     subtitle: "Select a challenge to start ear training.",
     chordConstruction: "Chord Construction",
-    chordConstructionDesc: "Major, Minor, Augmented and Diminished.",
+    chordConstructionDesc: "Master chord spelling and notation. Build triads and sevenths across different inversions on the staff.",
     chordDictation: "Chord Dictation",
     chordDictationDesc: "Identify quality and inversion by ear.",
     start: "Excercises",

@@ -16,7 +16,7 @@ export const es = {
     title: "Sala de Práctica",
     subtitle: "Selecciona un reto para comenzar a entrenar tu oído.",
     chordConstruction: "Construcción de Acordes",
-    chordConstructionDesc: "Mayor, Menor, Aumentado y Disminuido.",
+    chordConstructionDesc: "Domina la ortografía y notación de acordes. Construye tríadas y séptimas en diferentes inversiones sobre el pentagrama.",
     chordDictation: "Dictado de Acordes",
     chordDictationDesc: "Identifica calidad e inversión auditivamente.",
     start: "Ejercicios",
