@@ -4,29 +4,22 @@ import { MainLayout } from "./components/Layaout/MainLayaout";
 
 // Pages
 const MainPage = lazy(() => import("./pages/MainPage"));
-const ExercisesPage = lazy(() => import("./pages/ExercisesPage")); // El contenedor
+const ExercisesPage = lazy(() => import("./pages/ExercisesPage"));
 const TheoryPage = lazy(() => import("./pages/TheoryPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 
-// Features (Vistas directas de los juegos)
+// Features
 const ExercisesList = lazy(() => import("./features/excercises/ExercisesHome"));
-// const ChordConstruction = lazy(() => import('./features/exercises/views/ChordConstruction'));
-const ChordDictation = lazy(
-  () => import("./features/excercises/ChordDictation/ChordDictation")
-);
+const ChordDictation = lazy(() => import("./features/excercises/ChordDictation/ChordDictation"));
 const ChordConstruction = lazy(() => import('./features/excercises/ChordConstruction/ChordConstruction'));
-const NoteRecognition = lazy(() => import('./features/excercises/NoteRecognition/NoteRecognitionGame'));
+const NoteRecognition = lazy(() => import('./features/excercises/NoteRecognition/NoteRecognition'));
 
 function App() {
   return (
     <Router root={MainLayout}>
-      {/* 
-        Suspense permite que la app renderice el Layout y la ruta Home 
-        instantáneamente, mostrando el 'fallback' solo si algo falta.
-      */}
       <Suspense
         fallback={
-          <div class="flex h-screen items-center justify-center">
+          <div class="flex h-screen items-center justify-center bg-base-200 text-primary font-serif animate-pulse">
             Cargando Laboratorio...
           </div>
         }
@@ -35,13 +28,7 @@ function App() {
 
         <Route path="/exercises" component={ExercisesPage}>
           <Route path="/" component={ExercisesList} />
-          {/* <Route path="/chord-construction" component={ChordConstruction} /> */}
-          <Route path="/chord-dictation" component={ChordDictation} />
-          <Route
-            path="/chord-construction"
-            component={ChordConstruction}
-          />{" "}
-          {/* ACTUALIZADO */}
+          <Route path="/chord-construction" component={ChordConstruction} />
           <Route path="/chord-dictation" component={ChordDictation} />
           <Route path="/note-recognition" component={NoteRecognition} />
         </Route>
@@ -52,4 +39,5 @@ function App() {
     </Router>
   );
 }
+
 export default App;

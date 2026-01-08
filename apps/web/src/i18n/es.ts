@@ -22,7 +22,7 @@ export const es = {
     start: "Ejercicios",
     train: "Entrenar",
     comingSoon: "Próximamente",
-    noteRecognition: "Lectura de Notas",
+    noteRecognition: "Reconocimiento de Notas",
     noteRecognitionDesc:
       "Aprende a leer notas en clave de Sol y Fa con progresión por niveles.",
   },

@@ -15,14 +15,15 @@ export default function ExercisesHome() {
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
-        {/* TARJETA 1: RECONOCIMIENTO DE NOTAS (NUEVO) */}
+        {/* TARJETA 1: RECONOCIMIENTO DE NOTAS */}
         <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-accent group">
           <div class="card-body">
             <div class="flex justify-between items-start">
               <h3 class="card-title font-serif text-xl group-hover:text-accent transition-colors">
                 {t('home.noteRecognition') as string}
               </h3>
-              <div class="badge badge-accent badge-outline text-[10px] font-bold">NIVEL 1</div>
+              {/* Este enlace lleva a la vista que gestiona Config/Juego de notas */}
+              {/* <div class="badge badge-accent badge-outline text-[10px] font-bold">NIVEL PROGRESIVO</div> */}
             </div>
             <p class="text-sm opacity-70">{t('home.noteRecognitionDesc') as string}</p>
             
@@ -48,7 +49,7 @@ export default function ExercisesHome() {
             <div class="card-actions justify-end mt-4">
               <A 
                 href="/exercises/chord-construction" 
-                class="btn btn-sm btn-secondary text-secondary-content"
+                class="btn btn-sm btn-secondary text-secondary-content font-bold"
               >
                 {t('home.start') as string}
               </A>
@@ -64,19 +65,28 @@ export default function ExercisesHome() {
             </h3>
             <p class="text-sm opacity-70">{t('home.chordDictationDesc') as string}</p>
             <div class="card-actions justify-end mt-4">
-              <A href="/exercises/chord-dictation" class="btn btn-sm btn-primary">
+              <A href="/exercises/chord-dictation" class="btn btn-sm btn-primary font-bold">
                 {t('home.train') as string}
               </A>
             </div>
           </div>
         </div>
 
-        {/* TARJETA 4: PROXIMAMENTE */}
-        <div class="card bg-base-100/30 border border-dashed border-base-content/20 flex flex-col justify-center items-center p-8 opacity-60">
-            <p class="font-serif italic text-sm text-center">
-              {t('home.comingSoon' as any)}: <br/>
-              <span class="font-bold not-italic">Dictado Melódico</span>
+        {/* TARJETA 4: DICTADO MELÓDICO (ACTIVO) */}
+        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-warning group">
+          <div class="card-body">
+            <h3 class="card-title font-serif text-xl group-hover:text-warning transition-colors">
+              {t('home.melodicDictation' as any) || "Dictado Melódico"}
+            </h3>
+            <p class="text-sm opacity-70">
+              {t('home.melodicDictationDesc' as any) || "Entrena polifonía a 2, 3 y 4 voces."}
             </p>
+            <div class="card-actions justify-end mt-4">
+              <A href="/exercises/melodic-dictation" class="btn btn-sm btn-warning text-warning-content font-bold">
+                {t('home.train') as string}
+              </A>
+            </div>
+          </div>
         </div>
 
       </div>
