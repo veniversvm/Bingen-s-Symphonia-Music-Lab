@@ -8,12 +8,13 @@ interface Props {
   onNoteClick: (note: string) => void;
   selectedNotes: string[];
   mode: SpellingMode;
+  startMidi?: number;
+  endMidi?: number;
 }
-
 export const PianoInput = (props: Props) => {
   // --- NUEVO RANGO: A3 (57) a A5 (81) ---
-  const START_MIDI = 57; 
-  const END_MIDI = 81;
+  const START_MIDI = props.startMidi ?? 57; // A3
+  const END_MIDI   = props.endMidi   ?? 81; // A5
   const range = Array.from(
     { length: END_MIDI - START_MIDI + 1 }, 
     (_, i) => i + START_MIDI

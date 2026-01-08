@@ -1,82 +1,101 @@
 import * as Soundfont from 'soundfont-player';
+import { globalVolume } from '../store/audioStore';
+import { createEffect } from 'solid-js';
 
-
-// Nombres oficiales de General MIDI
 export type InstrumentName =
   | "acoustic_grand_piano"
   | "acoustic_guitar_nylon"
   | "violin"
   | "flute"
-  | "choir_aahs"; // Voz
+  | "choir_aahs";
 
 class AudioEngine {
   private ctx: AudioContext;
   private currentInstrument: Soundfont.Player | null = null;
-  private currentName: InstrumentName = "acoustic_grand_piano";
+  private currentName: InstrumentName | null = null;
   private isLoading = false;
+  private masterGain: GainNode;
+  private limiter: DynamicsCompressorNode; 
 
   constructor() {
-    // Inicializamos el contexto de audio del navegador
-    const AudioContextClass =
-      window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
     this.ctx = new AudioContextClass();
 
-    // Cargar piano por defecto
-    //this.setInstrument("acoustic_grand_piano");
+    // 1. Master Gain con etapa de potencia alta
+    this.masterGain = this.ctx.createGain();
+    
+    // 2. Configuración de Limitador (para evitar que el sonido se rompa al subirlo tanto)
+    this.limiter = this.ctx.createDynamicsCompressor();
+    this.limiter.threshold.setValueAtTime(-3, this.ctx.currentTime); // Límite casi al máximo
+    this.limiter.knee.setValueAtTime(0, this.ctx.currentTime);
+    this.limiter.ratio.setValueAtTime(20, this.ctx.currentTime); // Ratio de limitador
+    this.limiter.attack.setValueAtTime(0.005, this.ctx.currentTime);
+    this.limiter.release.setValueAtTime(0.05, this.ctx.currentTime);
+
+    // Conexión: Instrumento -> masterGain -> limiter -> Salida
+    this.masterGain.connect(this.limiter);
+    this.limiter.connect(this.ctx.destination);
+    
+    // BOOST: Multiplicamos el volumen por 4.0 para compensar el bajo nivel de los samples
+    this.masterGain.gain.value = globalVolume() * 4;
+
+    createEffect(() => {
+      const vol = globalVolume();
+      // El factor 4.0 hará que el 50% del slider suene como el 200% original
+      this.masterGain.gain.setTargetAtTime(vol * 4, this.ctx.currentTime, 0.05);
+    });
   }
 
   public async setInstrument(name: InstrumentName) {
     if (this.currentName === name && this.currentInstrument) return;
-
     this.isLoading = true;
     this.currentName = name;
 
     try {
-        // Optimizacion: Si el contexto está suspendido (regla de Chrome), lo reanudamos al cargar
-        if (this.ctx.state === 'suspended') await this.ctx.resume();
-  
-        this.currentInstrument = await Soundfont.instrument(this.ctx, name);
-      } catch (e) {
-        console.error("Error cargando instrumento MIDI:", e);
-      } finally {
-        this.isLoading = false;
-      }
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+
+      this.currentInstrument = await Soundfont.instrument(this.ctx, name, {
+        destination: this.masterGain,
+        // Algunos instrumentos necesitan un boost interno adicional
+        gain: 3 
+      });
+    } catch (e) {
+      console.error("Error cargando instrumento:", e);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   public async play(notes: string[]) {
-    // Si intentan tocar sin haber cargado nada, cargamos el piano por defecto
     if (!this.currentInstrument && !this.isLoading) {
        await this.setInstrument('acoustic_grand_piano');
     }
-
     this.playSequence(notes, 0);
   }
 
-  
   public arpeggiate(notes: string[]) {
-    // Tocar notas con 300ms de separación
     this.playSequence(notes, 0.3);
   }
 
-  // Método privado unificado
   private playSequence(notes: string[], gapSeconds: number) {
     if (this.ctx.state === "suspended") this.ctx.resume();
 
     if (this.currentInstrument && !this.isLoading) {
+      // Importante no usar .stop() agresivo si queremos que las colas de sonido se mantengan
+      // pero si el volumen es un problema, esto limpia el buffer anterior.
       this.currentInstrument.stop();
 
       notes.forEach((note, index) => {
-        // Si gapSeconds es 0, todos suenan en currentTime (Acorde)
-        // Si gapSeconds es 0.3, suenan en 0, 0.3, 0.6... (Arpegio)
         const time = this.ctx.currentTime + index * gapSeconds;
 
         this.currentInstrument?.play(note, time, {
-          duration: 2.5,
-          gain: 1,
+          duration: 3,
+          gain: 4, // Etapa de ganancia final por nota
         });
       });
     }
   }
+
   public getIsLoading() {
     return this.isLoading;
   }
