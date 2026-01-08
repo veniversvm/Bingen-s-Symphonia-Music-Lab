@@ -20,11 +20,11 @@ const NotFoundPage = () => {
 
       <div class="max-w-md space-y-6 relative z-10">
         <h1 class="text-3xl md:text-4xl font-serif font-black text-primary italic">
-          {/* APLICAMOS EL CAST 'as any' AQUÍ */}
-          {t('notFound.title' as any) as string}
+          {/* Usamos 'as any' para saltar la validación estricta de tsc */}
+          {t("notFound.title" as any) as string}
         </h1>
         <p class="text-lg opacity-60 font-serif leading-relaxed">
-          {t('notFound.text' as any) as string}
+          {t("notFound.text" as any) as string}
         </p>
         
         <div class="pt-6">
@@ -33,7 +33,7 @@ const NotFoundPage = () => {
             class="btn btn-primary btn-lg gap-3 rounded-2xl shadow-xl shadow-primary/20 font-black uppercase tracking-widest text-sm"
           >
             <Home size={20} />
-            {t('notFound.button' as any) as string}
+            {t("notFound.button" as any) as string}
           </A>
         </div>
       </div>
