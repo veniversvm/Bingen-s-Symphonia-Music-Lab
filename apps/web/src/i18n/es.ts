@@ -38,4 +38,10 @@ export const es = {
     retry: "Reintentar",
     exit: "Finalizar",
   },
+  notFound: {
+    title: "404 - Silencio Inesperado",
+    text: "La página que buscas no se encuentra en nuestra partitura.",
+    button: "Regresar al Inicio"
+  }
+
 };
