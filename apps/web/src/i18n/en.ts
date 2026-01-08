@@ -38,4 +38,9 @@ export const en = {
     retry: "Reintentar",
     exit: "Finalizar",
   },
+  notFound: {
+    title: "404 - Unexpected Silence",
+    text: "The page you are looking for is not in our score.",
+    button: "Back to Home"
+  }
 };

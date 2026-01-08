@@ -8,6 +8,7 @@ const ExercisesPage = lazy(() => import("./pages/ExercisesPage"));
 const TheoryPage = lazy(() => import("./pages/TheoryPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const AboutUsPage = lazy(() => import("./pages/AboutPage"))
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 // Features
 const ExercisesList = lazy(() => import("./features/excercises/ExercisesHome"));
@@ -39,6 +40,7 @@ function App() {
 
         <Route path="/theory" component={TheoryPage} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="*404" component={NotFoundPage} />
       </Suspense>
     </Router>
   );
