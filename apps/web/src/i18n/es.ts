@@ -44,4 +44,4 @@ export const es = {
     button: "Regresar al Inicio"
   }
 
-};
+} as const;

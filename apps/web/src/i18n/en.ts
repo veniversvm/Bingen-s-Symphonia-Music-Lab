@@ -43,4 +43,4 @@ export const en = {
     text: "The page you are looking for is not in our score.",
     button: "Back to Home"
   }
-};
+} as const;
