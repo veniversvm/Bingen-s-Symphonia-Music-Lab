@@ -3,14 +3,13 @@ name: Deploy BSML Demo
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Permite disparar el despliegue manualmente desde la web
+  workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Solo permite un despliegue a la vez. Si hay uno en curso, lo cancela y prioriza el nuevo.
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -35,9 +34,12 @@ jobs:
         run: yarn workspace @bingens/core build
 
       - name: Build Web App
-        run: yarn workspace web build
+        # PASAMOS LA VARIABLE AQUÍ Y AÑADIMOS EL FIX DEL 404
+        run: |
+          export VITE_BASE_PATH=/Bingen-s-Symphonia-Music-Lab/
+          yarn workspace web build
+          cp apps/web/dist/index.html apps/web/dist/404.html
 
-      # ESTE PASO SOLO DEBE APARECER UNA VEZ
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -50,7 +52,4 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      # ESTE PASO SOLO DEBE APARECER UNA VEZ
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deplo
