@@ -11,6 +11,7 @@ export const en = {
     practice: "Practice",
     theory: "Learn",
     profile: "Profile",
+    about: "About Us",
   },
   home: {
     title: "Practice Room",

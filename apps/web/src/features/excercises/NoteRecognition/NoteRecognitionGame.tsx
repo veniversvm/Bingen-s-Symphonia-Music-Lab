@@ -41,7 +41,7 @@ export const NoteRecognitionGame = (props: Props) => {
   const [challenge, setChallenge] = createSignal<NoteChallenge | null>(null);
   const [feedback, setFeedback] = createSignal<null | "correct" | "wrong">(null);
   const [isRevealed, setIsRevealed] = createSignal(false);
-  const [inputType, setInputType] =
+  const [inputType] =
     createSignal<"piano" | "buttons">("piano");
 
   // ─────────────────────────────────────────
@@ -66,7 +66,7 @@ export const NoteRecognitionGame = (props: Props) => {
     "A", "A#", "Bb", "B"
   ];
 
-  const preferredAccidental = () =>
+  // const preferredAccidental = () =>
     challenge()?.note.includes("b") ? "flat" : "sharp";
 
   // ─────────────────────────────────────────

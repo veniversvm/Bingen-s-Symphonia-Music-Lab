@@ -11,6 +11,7 @@ export const es = {
     practice: "Práctica",
     theory: "Aprender",
     profile: "Perfil",
+    about: "Sobre Nosotros",
   },
   home: {
     title: "Sala de Práctica",
