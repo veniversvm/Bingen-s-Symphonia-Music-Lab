@@ -19,6 +19,7 @@ export interface Exercise {
 // 3. Exportación de generadores de las distintas features
 export * from './generators/chord-generator';
 export * from './generators/note-generator';
+export * from './generators/melodic-library';
 
 // Una función simple para probar que la lógica se comparte
 export const getScale = (root: string): string[] => {

@@ -37,7 +37,9 @@ export const NoteRecognitionConfig = (props: Props) => {
     { name: "acoustic_guitar_nylon", label: "🎸" },
     { name: "violin", label: "🎻" },
     { name: "flute", label: "🎼" },
-    { name: "choir_aahs", label: "🗣️" }
+    { name: "choir_aahs", label: "🗣️" },
+    { name: 'trumpet', label: '🎺' },
+    { name: 'lead_1_square', label: '👾' },
   ];
 
   const toggleInst = (name: InstrumentName) => {

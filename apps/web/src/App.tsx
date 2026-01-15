@@ -15,6 +15,7 @@ const ExercisesList = lazy(() => import("./features/excercises/ExercisesHome"));
 const ChordDictation = lazy(() => import("./features/excercises/ChordDictation/ChordDictation"));
 const ChordConstruction = lazy(() => import('./features/excercises/ChordConstruction/ChordConstruction'));
 const NoteRecognition = lazy(() => import('./features/excercises/NoteRecognition/NoteRecognition'));
+const MelodicDictation = lazy(() => import('./features/excercises/MelodicDictation/MelodicDictation'));
 
 function App() {
   const basePath = import.meta.env.VITE_BASE_PATH || "/";
@@ -36,6 +37,7 @@ function App() {
           <Route path="/chord-construction" component={ChordConstruction} />
           <Route path="/chord-dictation" component={ChordDictation} />
           <Route path="/note-recognition" component={NoteRecognition} />
+          <Route path="/melodic-dictation" component={MelodicDictation} />
         </Route>
 
         <Route path="/theory" component={TheoryPage} />

@@ -14,6 +14,7 @@
     "@solidjs/router": "^0.15.4",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/solid-query": "^5.90.15",
+    "@tonejs/midi": "^2.0.28",
     "dexie": "^4.2.1",
     "lucide-solid": "^0.562.0",
     "solid-js": "^1.9.10",

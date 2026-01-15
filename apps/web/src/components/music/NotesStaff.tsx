@@ -1,17 +1,24 @@
-import { createEffect } from 'solid-js';
-import { Renderer, Stave, StaveNote, Accidental, Voice, Formatter } from 'vexflow';
+import { createEffect } from "solid-js";
+import {
+  Renderer,
+  Stave,
+  StaveNote,
+  Accidental,
+  Voice,
+  Formatter,
+} from "vexflow";
 
-export const NoteStaff = (props: { note: string, clef: 'treble' | 'bass' }) => {
+export const NoteStaff = (props: { note: string; clef: "treble" | "bass" }) => {
   let containerRef: HTMLDivElement | undefined;
 
   const draw = () => {
     if (!containerRef || !props.note) return;
-    containerRef.innerHTML = '';
-    
+    containerRef.innerHTML = "";
+
     const renderer = new Renderer(containerRef, Renderer.Backends.SVG);
     renderer.resize(200, 150);
     const context = renderer.getContext();
-    
+
     // Usamos las variables de tu paleta de colores
     context.setStrokeStyle("var(--color-staff)");
     context.setFillStyle("var(--color-staff)");
@@ -21,12 +28,12 @@ export const NoteStaff = (props: { note: string, clef: 'treble' | 'bass' }) => {
 
     // Vexflow espera "c/4" en lugar de "C4"
     const key = `${props.note.slice(0, -1).toLowerCase()}/${props.note.slice(-1)}`;
-    const note = new StaveNote({ 
-      keys: [key], 
-      duration: "q", 
-      clef: props.clef 
+    const note = new StaveNote({
+      keys: [key],
+      duration: "q",
+      clef: props.clef,
     });
-    
+
     // Manejo de alteraciones (#, b)
     const accMatch = props.note.match(/[#b]+/);
     if (accMatch) {
@@ -34,17 +41,18 @@ export const NoteStaff = (props: { note: string, clef: 'treble' | 'bass' }) => {
     }
 
     // Color de la nota (Primario)
-    note.setStyle({ fillStyle: "var(--primary)", strokeStyle: "var(--primary)" });
-    
+    note.setStyle({
+      fillStyle: "var(--primary)",
+      strokeStyle: "var(--primary)",
+    });
+
     // --- CORRECCIÓN: Usar importaciones directas en lugar de require ---
     // Nota: Vexflow 5 usa camelCase (numBeats, beatValue)
     const voice = new Voice({ numBeats: 1, beatValue: 4 });
     voice.addTickables([note]);
-    
-    new Formatter()
-      .joinVoices([voice])
-      .format([voice], 100);
-      
+
+    new Formatter().joinVoices([voice]).format([voice], 100);
+
     voice.draw(context, stave);
   };
 
@@ -57,9 +65,9 @@ export const NoteStaff = (props: { note: string, clef: 'treble' | 'bass' }) => {
   });
 
   return (
-    <div 
-      ref={containerRef} 
-      class="flex justify-center bg-base-100/50 rounded-xl border border-base-content/5" 
+    <div
+      ref={containerRef}
+      class="flex justify-center bg-base-100/50 rounded-xl border border-base-content/5"
     />
   );
 };

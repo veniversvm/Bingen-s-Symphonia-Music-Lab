@@ -1,0 +1,20 @@
+
+
+[
+  {
+    "id": "m4-001",
+    "title": "Iniciación Tónica",
+    "filename": "basic1.mid",
+    "mode": "major",
+    "originalKey": "C",
+    "timeSignature": "4/4",
+    "totalMeasures": 4,
+    "numVoices": 2,
+    "bpm": 80,
+    "anacrusis": { "has": false, "beat": 1 },
+    "steps": [
+      { "n": ["C3", "C4"], "d": "2" },
+      { "n": ["C3", "E4"], "d": "2" }
+    ]
+  }
+]

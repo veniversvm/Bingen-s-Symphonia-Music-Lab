@@ -22,8 +22,6 @@ export default function ExercisesHome() {
               <h3 class="card-title font-serif text-xl group-hover:text-accent transition-colors">
                 {t('home.noteRecognition') as string}
               </h3>
-              {/* Este enlace lleva a la vista que gestiona Config/Juego de notas */}
-              {/* <div class="badge badge-accent badge-outline text-[10px] font-bold">NIVEL PROGRESIVO</div> */}
             </div>
             <p class="text-sm opacity-70">{t('home.noteRecognitionDesc') as string}</p>
             
@@ -72,8 +70,8 @@ export default function ExercisesHome() {
           </div>
         </div>
 
-        {/* TARJETA 4: DICTADO MELÓDICO (ACTIVO) */}
-        {/* <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-warning group">
+        {/* TARJETA 4: DICTADO MELÓDICO (¡ACTIVA!) */}
+        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-warning group">
           <div class="card-body">
             <h3 class="card-title font-serif text-xl group-hover:text-warning transition-colors">
               {t('home.melodicDictation' as any) || "Dictado Melódico"}
@@ -82,12 +80,15 @@ export default function ExercisesHome() {
               {t('home.melodicDictationDesc' as any) || "Entrena polifonía a 2, 3 y 4 voces."}
             </p>
             <div class="card-actions justify-end mt-4">
-              <A href="/exercises/melodic-dictation" class="btn btn-sm btn-warning text-warning-content font-bold">
+              <A 
+                href="/exercises/melodic-dictation" 
+                class="btn btn-sm btn-warning text-warning-content font-bold"
+              >
                 {t('home.train') as string}
               </A>
             </div>
           </div>
-        </div> */}
+        </div>
 
       </div>
     </div>
