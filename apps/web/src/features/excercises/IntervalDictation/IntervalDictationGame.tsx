@@ -1,15 +1,15 @@
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import {
   IntervalGenerator,
-  INTERNAL_MODES,
   INTERVAL_LEVELS,
+  NoteUtils,
+  transpose,
 } from "@bingens/core";
-import { NoteUtils, transpose } from "@bingens/core";
-import { audioEngine } from "../../../lib/audio";
+import { audioEngine, type InstrumentName } from "../../../lib/audio";
 import { useIntervalI18n } from "./i18n";
 import { ExerciseSummary } from "../ExerciseSummary";
 import type { IntervalSettings } from "./IntervalDictationConfig";
-import { IntervalGameUI } from "./IntervalGameUI"; // Importamos el componente visual
+import { IntervalGameUI } from "./IntervalGameUI";
 
 export const IntervalDictationGame = (props: {
   settings: IntervalSettings;
@@ -17,104 +17,97 @@ export const IntervalDictationGame = (props: {
 }) => {
   const [t] = useIntervalI18n();
 
-  // Estados Lógicos
+  // ─────────────────────────────────────────
+  // ESTADOS LÓGICOS (PROGRESIÓN)
+  // ─────────────────────────────────────────
   const [levelIdx, setLevelIdx] = createSignal(0);
   const [subLevelIdx, setSubLevelIdx] = createSignal(0);
   const [streak, setStreak] = createSignal(0);
   const [instIdx, setInstIdx] = createSignal(0);
-  const [challenge, setChallenge] = createSignal<any>(null);
-  const [feedback, setFeedback] = createSignal<null | "correct" | "wrong">(
-    null,
-  );
   const [isGameOver, setIsGameOver] = createSignal(false);
 
-  // Score de Sesión
+  // ─────────────────────────────────────────
+  // ESTADOS DEL JUEGO ACTUAL
+  // ─────────────────────────────────────────
+  const [challenge, setChallenge] = createSignal<any>(null);
+  const [feedback, setFeedback] = createSignal<null | "correct" | "wrong">(null);
   const [sessionScore, setSessionScore] = createSignal(0);
   const [sessionTotal, setSessionTotal] = createSignal(0);
 
-  // --- LÓGICA DE GENERACIÓN ---
+  // ─────────────────────────────────────────
+  // GENERACIÓN DE RETOS
+  // ─────────────────────────────────────────
+  
+  // Generador para modo personalizado (Custom)
   const generateCustomChallenge = () => {
     const intervals = props.settings.selectedIntervals;
     const interval = intervals[Math.floor(Math.random() * intervals.length)];
 
-    // CAMBIO AQUÍ: Usamos los modos elegidos por el usuario
-    // Si por alguna razón llega vacío (no debería), fallback a todos
-    const modes =
-      props.settings.playbackModes.length > 0
+    // Obtener modos permitidos (o todos si no hay ninguno)
+    const possibleModes = props.settings.playbackModes.length > 0
         ? props.settings.playbackModes
         : ["asc", "desc", "harmonic"];
 
-    const mode = modes[Math.floor(Math.random() * modes.length)];
+    const mode = possibleModes[Math.floor(Math.random() * possibleModes.length)];
 
-    // Generar notas (A3 a A5)
+    // Rango central: Midi 57 (A3) a 72 (C5)
     const rootMidi = Math.floor(Math.random() * (72 - 57 + 1)) + 57;
     const rootNote = NoteUtils.fromMidi(rootMidi);
-
-    // Calcular nota destino
-    // Si es descendente, restamos el intervalo. Si no, sumamos.
-    const targetNote = transpose(
-      rootNote,
-      mode === "desc" ? `-${interval}` : interval,
-    );
+    const intervalNote = transpose(rootNote, interval); 
 
     return {
-      id: crypto.randomUUID(),
-      // Si es descendente: [Aguda, Grave]. Si no: [Grave, Aguda]
-      notes: mode === "desc" ? [rootNote, targetNote] : [rootNote, targetNote], // Ojo aquí con el orden de transpose vs array
+      id: window.crypto.randomUUID(),
+      // Lógica de orden: Descendente toca primero la aguda
+      notes: mode === "desc" ? [intervalNote, rootNote] : [rootNote, intervalNote],
       interval: interval,
       playbackMode: mode,
     };
   };
 
-  onCleanup(() => {
-    // Cuando el componente se destruye (navegación), matamos el sonido
-    audioEngine.stopAll();
-  });
-
-  // Dentro de IntervalDictationGame.tsx
-
   const nextChallenge = async () => {
-    // 1. Limpieza inmediata (visual y sonora)
     setFeedback(null);
     setSessionTotal((c) => c + 1);
-    audioEngine.stopAll(); // <--- Silencio total instantáneo
+    
+    // Limpieza auditiva inmediata
+    audioEngine.stopAll();
 
-    // 2. Generamos el nuevo reto
-    let next;
-    if (props.settings.mode === "mastery") {
-      next = IntervalGenerator.generate(levelIdx(), subLevelIdx());
-    } else {
-      next = generateCustomChallenge();
-    }
+    // Determinar qué tipo de reto generar
+    const next = props.settings.mode === "mastery"
+      ? IntervalGenerator.generate(levelIdx(), subLevelIdx())
+      : generateCustomChallenge();
+    
     setChallenge(next);
 
-    // 3. PEQUEÑA PAUSA (500ms) antes de sonar el nuevo ejercicio
+    // PAUSA PEDAGÓGICA: Esperar 500ms para resetear el oído del alumno
     setTimeout(async () => {
-      // Selección del instrumento
-      const currentInst =
-        props.settings.mode === "mastery"
-          ? props.settings.instruments[
-              instIdx() % props.settings.instruments.length
-            ]
-          : props.settings.instruments[
-              Math.floor(Math.random() * props.settings.instruments.length)
-            ];
+      // Rotación de instrumentos según configuración
+      const currentInst = props.settings.mode === "mastery"
+          ? props.settings.instruments[instIdx() % props.settings.instruments.length]
+          : props.settings.instruments[Math.floor(Math.random() * props.settings.instruments.length)];
 
-      // Cargar el instrumento (si ya está cargado es instantáneo)
-      await audioEngine.setInstrument(currentInst);
-
-      // Tocar el intervalo
+      await audioEngine.setInstrument(currentInst as InstrumentName);
       playInterval();
     }, 500);
   };
 
+  // ─────────────────────────────────────────
+  // REPRODUCCIÓN
+  // ─────────────────────────────────────────
   const playInterval = () => {
     const ch = challenge();
     if (!ch) return;
-    if (ch.playbackMode === "harmonic") audioEngine.play(ch.notes);
-    else audioEngine.playSequence(ch.notes, 0.7);
+
+    if (ch.playbackMode === "harmonic") {
+      audioEngine.play(ch.notes);
+    } else {
+      // Método público que permite oír las notas por separado
+      audioEngine.playSequence(ch.notes, 0.7);
+    }
   };
 
+  // ─────────────────────────────────────────
+  // VALIDACIÓN Y PROGRESO
+  // ─────────────────────────────────────────
   const handleResponse = (interval: string) => {
     if (feedback()) return;
     const isCorrect = interval === challenge().interval;
@@ -122,23 +115,25 @@ export const IntervalDictationGame = (props: {
 
     if (isCorrect) {
       setSessionScore((s) => s + 1);
-      // Lógica de progreso solo para Mastery
+      
+      // Lógica Mastery (Avanzar nivel tras 3 aciertos seguidos)
       if (props.settings.mode === "mastery") {
         const newStreak = streak() + 1;
         setStreak(newStreak);
 
         if (newStreak >= 3) {
           setStreak(0);
-          // Avance de subnivel/instrumento/nivel...
+          // Avance de sub-etapas (asc -> desc -> mix...)
           if (subLevelIdx() < 4) {
-            setSubLevelIdx(subLevelIdx() + 1);
+            setSubLevelIdx(s => s + 1);
           } else {
+            // Rotar instrumento o subir nivel general
             if (instIdx() < props.settings.instruments.length - 1) {
-              setInstIdx(instIdx() + 1);
+              setInstIdx(i => i + 1);
               setSubLevelIdx(0);
             } else {
               if (levelIdx() < INTERVAL_LEVELS.length - 1) {
-                setLevelIdx(levelIdx() + 1);
+                setLevelIdx(l => l + 1);
                 setSubLevelIdx(0);
                 setInstIdx(0);
               } else {
@@ -149,50 +144,62 @@ export const IntervalDictationGame = (props: {
         }
       }
     } else {
+      // Si falla en modo maestría, la racha vuelve a cero
       if (props.settings.mode === "mastery") setStreak(0);
     }
   };
 
-  onMount(nextChallenge);
+  const resetGame = () => {
+    setSessionTotal(0);
+    setSessionScore(0);
+    setStreak(0);
+    setIsGameOver(false);
+    nextChallenge();
+  };
 
-  // --- DATOS PARA LA UI ---
-  // Calculamos los textos a mostrar según el modo
-  const getLevelName = () =>
-    props.settings.mode === "mastery"
-      ? INTERVAL_LEVELS[levelIdx()].name
-      : "Personalizado";
-  const getSubLevelName = () =>
-    props.settings.mode === "mastery"
-      ? t(`sublevels.${INTERNAL_MODES[subLevelIdx()]}` as any) || "FULL MIX"
-      : "Aleatorio";
+  onMount(nextChallenge);
+  onCleanup(() => audioEngine.stopAll());
+
+  // ─────────────────────────────────────────
+  // HELPERS DE INTERFAZ (TRADUCCIONES)
+  // ─────────────────────────────────────────
+
+  const getLevelDisplayName = () => 
+    props.settings.mode === "mastery" 
+      ? `${t('nav.practice' as any)}: ${INTERVAL_LEVELS[levelIdx()].name}` 
+      : (t('modes.custom' as any) as string);
+
+  const getSubLevelDisplayName = () => {
+    const ch = challenge();
+    if (!ch) return "...";
+    // Muestra el modo real (Ascendente, Descendente, etc.) según el reto generado
+    return (t(`sublevels.${ch.playbackMode}` as any) as string) || "N/A";
+  };
+
   const getOptions = () =>
     props.settings.mode === "mastery"
       ? INTERVAL_LEVELS[levelIdx()].intervals
       : props.settings.selectedIntervals;
 
+  // ─────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────
   return (
     <Show
       when={!isGameOver()}
       fallback={
         <ExerciseSummary
           score={sessionScore()}
-          total={sessionTotal() - 1}
-          onRetry={() => {
-            setSessionTotal(0);
-            setSessionScore(0);
-            setStreak(0);
-            setIsGameOver(false);
-            nextChallenge();
-          }}
+          total={Math.max(feedback() ? sessionTotal() : sessionTotal() - 1, 0)}
+          onRetry={resetGame}
           onExit={props.onExit}
         />
       }
     >
-      {/* RENDERIZAMOS EL COMPONENTE GENÉRICO */}
       <IntervalGameUI
-        levelName={getLevelName()}
-        subLevelName={getSubLevelName() as string}
-        instrumentName={audioEngine.getIsLoading() ? "..." : "Instrumento"}
+        levelName={getLevelDisplayName()}
+        subLevelName={getSubLevelDisplayName()}
+        instrumentName={audioEngine.getIsLoading() ? "..." : "Soundfont"}
         streak={props.settings.mode === "mastery" ? streak() : 0}
         feedback={feedback()}
         intervalName={challenge()?.interval}
@@ -206,3 +213,5 @@ export const IntervalDictationGame = (props: {
     </Show>
   );
 };
+
+export default IntervalDictationGame;

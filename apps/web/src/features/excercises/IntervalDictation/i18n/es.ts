@@ -18,5 +18,5 @@ export const dict = {
       asc: "Ascendente",
       desc: "Descendente",
       harmonic: "Armónico"
-    }
+    },
 };
