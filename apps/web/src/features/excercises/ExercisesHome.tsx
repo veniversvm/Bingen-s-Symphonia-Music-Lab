@@ -15,15 +15,13 @@ export default function ExercisesHome() {
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
-        {/* TARJETA 1: RECONOCIMIENTO DE NOTAS */}
+        {/* 1. RECONOCIMIENTO DE NOTAS (Accent - Cian) */}
         <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-accent group">
           <div class="card-body">
             <div class="flex justify-between items-start">
               <h3 class="card-title font-serif text-xl group-hover:text-accent transition-colors">
                 {t('home.noteRecognition') as string}
               </h3>
-              {/* Este enlace lleva a la vista que gestiona Config/Juego de notas */}
-              {/* <div class="badge badge-accent badge-outline text-[10px] font-bold">NIVEL PROGRESIVO</div> */}
             </div>
             <p class="text-sm opacity-70">{t('home.noteRecognitionDesc') as string}</p>
             
@@ -38,7 +36,24 @@ export default function ExercisesHome() {
           </div>
         </div>
 
-        {/* TARJETA 2: CONSTRUCCIÓN DE ACORDES */}
+        {/* 2. DICTADO DE INTERVALOS (Warning - Ámbar) -> NUEVO */}
+        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-warning group">
+          <div class="card-body">
+            <h3 class="card-title font-serif text-xl group-hover:text-warning transition-colors">
+              {t('home.intervalDictation' as any) || "Dictado de Intervalos"}
+            </h3>
+            <p class="text-sm opacity-70">
+              {t('home.intervalDictationDesc' as any) || "Identifica distancias melódicas y armónicas."}
+            </p>
+            <div class="card-actions justify-end mt-4">
+              <A href="/exercises/interval-dictation" class="btn btn-sm btn-warning text-warning-content font-bold">
+                {t('home.train') as string}
+              </A>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. CONSTRUCCIÓN DE ACORDES (Secondary - Verde) */}
         <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-secondary group">
           <div class="card-body">
             <h3 class="card-title font-serif text-xl group-hover:text-secondary transition-colors">
@@ -57,7 +72,7 @@ export default function ExercisesHome() {
           </div>
         </div>
 
-        {/* TARJETA 3: DICTADO DE ACORDES */}
+        {/* 4. DICTADO DE ACORDES (Primary - Azul) */}
         <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-primary group">
           <div class="card-body">
             <h3 class="card-title font-serif text-xl group-hover:text-primary transition-colors">
@@ -72,21 +87,12 @@ export default function ExercisesHome() {
           </div>
         </div>
 
-        {/* TARJETA 4: DICTADO MELÓDICO (ACTIVO) */}
-        {/* <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-warning group">
-          <div class="card-body">
-            <h3 class="card-title font-serif text-xl group-hover:text-warning transition-colors">
-              {t('home.melodicDictation' as any) || "Dictado Melódico"}
-            </h3>
-            <p class="text-sm opacity-70">
-              {t('home.melodicDictationDesc' as any) || "Entrena polifonía a 2, 3 y 4 voces."}
+        {/* 5. PRÓXIMAMENTE: Dictado Melódico */}
+        {/* <div class="card bg-base-100/30 border border-dashed border-base-content/20 flex flex-col justify-center items-center p-8 opacity-60">
+            <p class="font-serif italic text-sm text-center">
+              {t('home.comingSoon' as any)}: <br/>
+              <span class="font-bold not-italic">Dictado Melódico</span>
             </p>
-            <div class="card-actions justify-end mt-4">
-              <A href="/exercises/melodic-dictation" class="btn btn-sm btn-warning text-warning-content font-bold">
-                {t('home.train') as string}
-              </A>
-            </div>
-          </div>
         </div> */}
 
       </div>

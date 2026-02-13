@@ -77,7 +77,7 @@ class AudioEngine {
     this.playSequence(notes, 0.3);
   }
 
-  private playSequence(notes: string[], gapSeconds: number) {
+  public playSequence(notes: string[], gapSeconds: number) {
     if (this.ctx.state === "suspended") this.ctx.resume();
 
     if (this.currentInstrument && !this.isLoading) {

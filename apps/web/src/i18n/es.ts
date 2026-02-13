@@ -20,12 +20,17 @@ export const es = {
     chordConstructionDesc: "Domina la ortografía y notación de acordes. Construye tríadas y séptimas en diferentes inversiones sobre el pentagrama.",
     chordDictation: "Dictado de Acordes",
     chordDictationDesc: "Identifica calidad e inversión auditivamente.",
+    // --- NUEVAS SECCIONES ---
+    intervalDictation: "Dictado de Intervalos",
+    intervalDictationDesc: "Desarrolla tu oído relativo identificando distancias simples y compuestas.",
+    melodicDictation: "Dictado Melódico",
+    melodicDictationDesc: "Entrena polifonía a 2, 3 y 4 voces.",
+    // ------------------------
     start: "Ejercicios",
     train: "Entrenar",
     comingSoon: "Próximamente",
     noteRecognition: "Reconocimiento de Notas",
-    noteRecognitionDesc:
-      "Aprende a leer notas en clave de Sol y Fa con progresión por niveles.",
+    noteRecognitionDesc: "Aprende a leer notas en clave de Sol y Fa con progresión por niveles.",
   },
   summary: {
     title: "Resultado de la Sesión",
@@ -43,5 +48,4 @@ export const es = {
     text: "La página que buscas no se encuentra en nuestra partitura.",
     button: "Regresar al Inicio"
   }
-
 } as const;
