@@ -36,14 +36,14 @@ export default function ExercisesHome() {
           </div>
         </div>
 
-        {/* 2. DICTADO DE INTERVALOS (Warning - Ámbar) -> NUEVO */}
+        {/* TARJETA 2: DICTADO DE INTERVALOS (Warning - Ámbar) */}
         <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all border-l-4 border-warning group">
           <div class="card-body">
             <h3 class="card-title font-serif text-xl group-hover:text-warning transition-colors">
-              {t('home.intervalDictation' as any) || "Dictado de Intervalos"}
+              {t('home.intervalDictation') as string}
             </h3>
             <p class="text-sm opacity-70">
-              {t('home.intervalDictationDesc' as any) || "Identifica distancias melódicas y armónicas."}
+              {t('home.intervalDictationDesc') as string}
             </p>
             <div class="card-actions justify-end mt-4">
               <A href="/exercises/interval-dictation" class="btn btn-sm btn-warning text-warning-content font-bold">

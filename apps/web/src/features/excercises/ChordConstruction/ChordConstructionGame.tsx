@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, createMemo } from "solid-js";
+import { createSignal, onMount, Show, createMemo, onCleanup } from "solid-js";
 import {
   NoteUtils,
   generateCustomDictation,
@@ -39,10 +39,10 @@ export const ChordConstructionGame = (props: Props) => {
   const [score, setScore] = createSignal(0);
   const [isGameOver, setIsGameOver] = createSignal(false);
   const [feedback, setFeedback] = createSignal<"correct" | "wrong" | null>(
-    null
+    null,
   );
   const [currentInstrument] = createSignal<InstrumentName>(
-    "acoustic_grand_piano"
+    "acoustic_grand_piano",
   );
 
   // --- LÓGICA DE SESIÓN ---
@@ -69,6 +69,11 @@ export const ChordConstructionGame = (props: Props) => {
     nextChallenge();
   };
 
+  onCleanup(() => {
+    // Cuando el componente se destruye (navegación), matamos el sonido
+    audioEngine.stopAll();
+  });
+
   const nextChallenge = async () => {
     setFeedback(null);
     setUserNotes([]);
@@ -78,7 +83,7 @@ export const ChordConstructionGame = (props: Props) => {
     });
     setChallenge(next);
     await audioEngine.setInstrument(
-      props.settings.instruments[0] || "acoustic_grand_piano"
+      props.settings.instruments[0] || "acoustic_grand_piano",
     );
   };
 
@@ -86,7 +91,7 @@ export const ChordConstructionGame = (props: Props) => {
 
   const sortedUserNotes = createMemo(() => {
     return [...userNotes()].sort(
-      (a, b) => (NoteUtils.midi(a) ?? 0) - (NoteUtils.midi(b) ?? 0)
+      (a, b) => (NoteUtils.midi(a) ?? 0) - (NoteUtils.midi(b) ?? 0),
     );
   });
 
@@ -312,10 +317,9 @@ export const ChordConstructionGame = (props: Props) => {
 
                 {/* ACCIONES */}
                 <div class="flex items-center gap-2 w-full h-11 sm:h-12 mt-auto">
-
-  {/* Undo */}
-  <button
-    class="
+                  {/* Undo */}
+                  <button
+                    class="
       btn btn-ghost
       border border-base-content/10
       w-11 sm:w-14
@@ -324,55 +328,55 @@ export const ChordConstructionGame = (props: Props) => {
       flex items-center justify-center
       hover:bg-warning/10
     "
-    onClick={undoLastNote}
-    disabled={!!feedback() || userNotes().length === 0}
-  >
-    <Undo2 size={18} class="opacity-70" />
-  </button>
+                    onClick={undoLastNote}
+                    disabled={!!feedback() || userNotes().length === 0}
+                  >
+                    <Undo2 size={18} class="opacity-70" />
+                  </button>
 
-  {/* Spelling mode */}
-  <div class="join border border-base-content/10 bg-base-200/50 h-full">
-    <button
-      class={`join-item btn btn-ghost h-full px-2 py-1 text-[10px] font-black uppercase leading-none ${
-        spellingMode() === "mixed"
-          ? "bg-primary text-white"
-          : "opacity-40"
-      }`}
-      onClick={() => setSpellingMode("mixed")}
-    >
-      Nat
-    </button>
+                  {/* Spelling mode */}
+                  <div class="join border border-base-content/10 bg-base-200/50 h-full">
+                    <button
+                      class={`join-item btn btn-ghost h-full px-2 py-1 text-[10px] font-black uppercase leading-none ${
+                        spellingMode() === "mixed"
+                          ? "bg-primary text-white"
+                          : "opacity-40"
+                      }`}
+                      onClick={() => setSpellingMode("mixed")}
+                    >
+                      Nat
+                    </button>
 
-    <button
-      class={`join-item btn btn-ghost h-full px-3 py-1 text-base font-bold leading-none ${
-        spellingMode() === "sharp"
-          ? "bg-primary text-white"
-          : "opacity-40"
-      }`}
-      onClick={() => setSpellingMode("sharp")}
-    >
-      ♯
-    </button>
+                    <button
+                      class={`join-item btn btn-ghost h-full px-3 py-1 text-base font-bold leading-none ${
+                        spellingMode() === "sharp"
+                          ? "bg-primary text-white"
+                          : "opacity-40"
+                      }`}
+                      onClick={() => setSpellingMode("sharp")}
+                    >
+                      ♯
+                    </button>
 
-    <button
-      class={`join-item btn btn-ghost h-full px-3 py-1 text-base font-bold leading-none ${
-        spellingMode() === "flat"
-          ? "bg-primary text-white"
-          : "opacity-40"
-      }`}
-      onClick={() => setSpellingMode("flat")}
-    >
-      ♭
-    </button>
-  </div>
+                    <button
+                      class={`join-item btn btn-ghost h-full px-3 py-1 text-base font-bold leading-none ${
+                        spellingMode() === "flat"
+                          ? "bg-primary text-white"
+                          : "opacity-40"
+                      }`}
+                      onClick={() => setSpellingMode("flat")}
+                    >
+                      ♭
+                    </button>
+                  </div>
 
-  {/* Acción principal */}
-  <div class="flex-1 h-full">
-    <Show
-      when={!feedback()}
-      fallback={
-        <button
-          class="
+                  {/* Acción principal */}
+                  <div class="flex-1 h-full">
+                    <Show
+                      when={!feedback()}
+                      fallback={
+                        <button
+                          class="
             btn btn-neutral
             h-full w-full
             gap-2
@@ -383,20 +387,20 @@ export const ChordConstructionGame = (props: Props) => {
             animate-in zoom-in
             border-none
           "
-          onClick={handleNext}
-        >
-          {isLastExercise()
-            ? t("config.finish" as any)
-            : t("common.next" as any)}
-          <ChevronDown
-            size={16}
-            class={isLastExercise() ? "" : "-rotate-90"}
-          />
-        </button>
-      }
-    >
-      <button
-        class="
+                          onClick={handleNext}
+                        >
+                          {isLastExercise()
+                            ? t("config.finish" as any)
+                            : t("common.next" as any)}
+                          <ChevronDown
+                            size={16}
+                            class={isLastExercise() ? "" : "-rotate-90"}
+                          />
+                        </button>
+                      }
+                    >
+                      <button
+                        class="
           btn btn-primary
           h-full w-full
           shadow-lg
@@ -407,18 +411,17 @@ export const ChordConstructionGame = (props: Props) => {
           gap-2
           border-none
         "
-        disabled={userNotes().length === 0}
-        onClick={checkAnswer}
-      >
-        <Send size={16} />
-        <span class="hidden xl:inline leading-none">
-          COMPROBAR
-        </span>
-      </button>
-    </Show>
-  </div>
-</div>
-
+                        disabled={userNotes().length === 0}
+                        onClick={checkAnswer}
+                      >
+                        <Send size={16} />
+                        <span class="hidden xl:inline leading-none">
+                          COMPROBAR
+                        </span>
+                      </button>
+                    </Show>
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, For, createMemo } from "solid-js";
+import { createSignal, onMount, Show, For, createMemo, onCleanup } from "solid-js";
 import {
   NoteRecognitionGenerator,
   type NoteChallenge,
@@ -72,6 +72,12 @@ export const NoteRecognitionGame = (props: Props) => {
   // ─────────────────────────────────────────
   // NUEVO RETO (FIX INSTRUMENTO)
   // ─────────────────────────────────────────
+
+  onCleanup(() => {
+  // Cuando el componente se destruye (navegación), matamos el sonido
+  audioEngine.stopAll();
+});
+
   const nextChallenge = async () => {
     setIsRevealed(false);
     setFeedback(null);
