@@ -106,6 +106,31 @@ export const IntervalDictationGame = (props: {
   };
 
   // ─────────────────────────────────────────
+  // REPRODUCCIÓN COMPARATIVA
+  // ─────────────────────────────────────────
+  const playComparison = (intervalSymbol: string) => {
+    const ch = challenge();
+    if (!ch) return;
+
+    // La referencia siempre es la primera nota que sonó (Grave en armónico/asc, Aguda en desc)
+    const referenceNote = ch.notes[0];
+    const mode = ch.playbackMode;
+
+    // Calculamos la nota de destino basándonos en la dirección del reto original
+    // Si el reto fue descendente, comparamos descendente.
+    const intervalToTranspose = mode === 'desc' ? `-${intervalSymbol}` : intervalSymbol;
+    const targetNote = transpose(referenceNote, intervalToTranspose);
+
+    const comparisonNotes = [referenceNote, targetNote];
+
+    if (mode === 'harmonic') {
+      audioEngine.play(comparisonNotes);
+    } else {
+      audioEngine.playSequence(comparisonNotes, 0.7);
+    }
+  };
+
+  // ─────────────────────────────────────────
   // VALIDACIÓN Y PROGRESO
   // ─────────────────────────────────────────
   const handleResponse = (interval: string) => {
@@ -209,6 +234,7 @@ export const IntervalDictationGame = (props: {
         onAnswer={handleResponse}
         onNext={nextChallenge}
         onExit={props.onExit}
+        onCompare={playComparison} 
       />
     </Show>
   );

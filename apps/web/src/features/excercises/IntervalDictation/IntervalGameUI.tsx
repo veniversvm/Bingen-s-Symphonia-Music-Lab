@@ -3,11 +3,11 @@ import {
   Music,
   LogOut,
   ChevronRight,
-  CircleCheck, // Cambiado de CheckCircle2 por la actualización de Lucide
-  CircleX,     // Cambiado de XCircle
+  CircleCheck, 
+  CircleX,
 } from "lucide-solid";
 import { useIntervalI18n } from "./i18n";
-import { currentLang } from "../../../i18n"; // Asegúrate de importar el idioma global
+import { currentLang } from "../../../i18n"; 
 
 interface Props {
   levelName: string;
@@ -22,12 +22,13 @@ interface Props {
   onAnswer: (interval: string) => void;
   onNext: () => void;
   onExit: () => void;
+  onCompare: (interval: string) => void;
 }
 
 export const IntervalGameUI = (props: Props) => {
   const [t] = useIntervalI18n();
 
-  // 1. Lógica de formateo
+  // 1. Lógica de formateo musical (3m -> 3ª m / m3)
   const formatInterval = (raw: string, lang: string) => {
     if (!raw) return "";
     const num = raw.slice(0, -1);
@@ -42,11 +43,11 @@ export const IntervalGameUI = (props: Props) => {
     }
   };
 
-  // 2. DEFINICIÓN DE renderName (La función que faltaba)
   const renderName = (val: string) => formatInterval(val, currentLang());
 
   return (
     <div class="w-full max-w-5xl mx-auto h-[calc(100dvh-120px)] flex flex-col gap-4 overflow-hidden px-2">
+      
       {/* 1. TOP TOOLBAR */}
       <div class="flex items-center justify-between bg-base-100 p-4 rounded-2xl shadow-lg border border-base-content/10 shrink-0">
         <button
@@ -84,7 +85,7 @@ export const IntervalGameUI = (props: Props) => {
         </div>
       </div>
 
-      {/* 2. ÁREA DE AUDIO PRINCIPAL + FEEDBACK */}
+      {/* 2. ÁREA DE AUDIO Y FEEDBACK CENTRAL */}
       <div
         class="flex-grow flex flex-col items-center justify-center bg-base-100 rounded-3xl border border-base-content/10 shadow-2xl relative overflow-hidden transition-colors duration-500"
         classList={{
@@ -102,7 +103,7 @@ export const IntervalGameUI = (props: Props) => {
           <Music size={48} class="fill-current" />
         </button>
 
-        <div class="mt-8 flex flex-col items-center gap-2 h-20 justify-center z-10">
+        <div class="mt-8 flex flex-col items-center gap-2 h-24 justify-center z-10">
           <Show
             when={props.feedback}
             fallback={
@@ -116,57 +117,63 @@ export const IntervalGameUI = (props: Props) => {
               </div>
             }
           >
+            {/* VISTA DE RESULTADO */}
             <div class="flex flex-col items-center animate-in zoom-in slide-in-from-bottom-4">
-              <div
-                class={`flex items-center gap-3 text-3xl font-black ${props.feedback === "correct" ? "text-success" : "text-error"}`}
-              >
-                {props.feedback === "correct" ? (
-                  <CircleCheck size={32} />
-                ) : (
-                  <CircleX size={32} />
-                )}
+              <div class={`flex items-center gap-3 text-3xl font-black ${props.feedback === "correct" ? "text-success" : "text-error"}`}>
+                {props.feedback === "correct" ? <CircleCheck size={32} /> : <CircleX size={32} />}
                 <span>{renderName(props.intervalName)}</span>
               </div>
 
-              <div class="flex gap-2 mt-2">
+              {/* TEXTO DE COMPARACIÓN (Indica que los botones siguen activos) */}
+              <div class="flex flex-col items-center gap-1 mt-2">
                 <span class="badge badge-sm font-bold opacity-60 uppercase tracking-tighter">
                   {t(("game." + props.feedback) as any) as string}
                 </span>
-                <span class="badge badge-outline badge-sm font-serif italic">
-                  {props.subLevelName}
-                </span>
+                <p class="text-[9px] uppercase font-black opacity-30 animate-pulse mt-1 tracking-widest text-center">
+                  Toca los intervalos para comparar sonidos
+                </p>
               </div>
             </div>
           </Show>
         </div>
       </div>
 
-      {/* 3. BOTONERA DE RESPUESTA */}
+      {/* 3. BOTONERA DE RESPUESTA / COMPARACIÓN */}
       <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 shrink-0 pb-4 px-2">
         <For each={props.options}>
           {(interval) => (
             <button
-              class="btn btn-md md:btn-lg btn-outline font-black text-xl hover:btn-primary transition-all relative no-animation h-14"
+              class="btn btn-md md:btn-lg btn-outline font-black text-xl transition-all relative no-animation h-14"
               classList={{
+                // Botón Correcto: Verde siempre
                 "btn-success !text-white scale-105 shadow-lg border-success":
                   !!props.feedback && interval === props.intervalName,
-                "btn-error opacity-40 border-error":
+                // Botón Incorrecto pulsado: Rojo
+                "btn-error opacity-70 border-error":
                   props.feedback === "wrong" && interval !== props.intervalName,
-                "btn-ghost opacity-20":
-                  props.feedback === "correct" &&
-                  interval !== props.intervalName,
+                // Otros botones tras responder: Atenuados pero clickeables para comparar
+                "btn-ghost opacity-40":
+                  props.feedback === "correct" && interval !== props.intervalName,
+                "hover:scale-105 active:scale-95": !!props.feedback 
               }}
-              onClick={() => props.onAnswer(interval)}
-              disabled={!!props.feedback}
+              // LÓGICA DE CLIC DUAL: Responder o Comparar
+              onClick={() => {
+                if (props.feedback) {
+                    props.onCompare(interval);
+                } else {
+                    props.onAnswer(interval);
+                }
+              }}
             >
               {renderName(interval)}
             </button>
           )}
         </For>
 
+        {/* BOTÓN DE AVANCE */}
         <Show when={props.feedback}>
           <button
-            class="btn btn-neutral col-span-full btn-lg animate-in zoom-in font-black uppercase tracking-widest shadow-2xl mt-2"
+            class="btn btn-neutral col-span-full btn-lg animate-in zoom-in font-black uppercase tracking-widest shadow-2xl mt-2 h-14"
             onClick={props.onNext}
           >
             {(t("common.next" as any) as string) || "Siguiente"}{" "}
